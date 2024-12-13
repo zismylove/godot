@@ -2342,6 +2342,7 @@ void TileMapLayer::set_as_tile_map_internal_node(int p_index) {
 	}
 }
 
+
 Rect2 TileMapLayer::get_rect(bool &r_changed) const {
 	if (tile_set.is_null()) {
 		r_changed = rect_cache != Rect2();

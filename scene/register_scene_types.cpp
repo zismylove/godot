@@ -158,6 +158,7 @@
 #include "scene/theme/theme_db.h"
 
 // 2D
+#include "2d/cTilemap.h"
 #include "scene/2d/animated_sprite_2d.h"
 #include "scene/2d/audio_listener_2d.h"
 #include "scene/2d/audio_stream_player_2d.h"
@@ -825,6 +826,9 @@ void register_scene_types() {
 	GDREGISTER_CLASS(TileData);
 	GDREGISTER_CLASS(TileMap);
 	GDREGISTER_CLASS(TileMapLayer);
+
+	GDREGISTER_CLASS(cTilemap);
+
 	GDREGISTER_CLASS(Parallax2D);
 	GDREGISTER_CLASS(ParallaxBackground);
 	GDREGISTER_CLASS(ParallaxLayer);

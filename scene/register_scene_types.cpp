@@ -158,6 +158,8 @@
 #include "scene/theme/theme_db.h"
 
 // 2D
+#include "2d/cPlaceItemNode.h"
+#include "2d/cSceneMake.h"
 #include "2d/cTilemap.h"
 #include "2d/layerData.h"
 #include "scene/2d/animated_sprite_2d.h"
@@ -828,10 +830,12 @@ void register_scene_types() {
 	GDREGISTER_CLASS(TileMap);
 	GDREGISTER_CLASS(TileMapLayer);
 
+	GDREGISTER_CLASS(cPlaceItemNode);
 	GDREGISTER_CLASS(cTilemap);
 	GDREGISTER_CLASS(cTileInfo);
 	GDREGISTER_CLASS(cTreeTileinfo);
 	GDREGISTER_CLASS(cLayerData);
+	GDREGISTER_CLASS(cSceneMake);
 
 	GDREGISTER_CLASS(Parallax2D);
 	GDREGISTER_CLASS(ParallaxBackground);

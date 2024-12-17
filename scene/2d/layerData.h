@@ -3,6 +3,7 @@
 #include "core/io/resource.h"
 #include "modules/noise/fastnoise_lite.h"
 
+
 class cTileInfo:public Resource {
 	GDCLASS(cTileInfo,Resource)
 public:
@@ -16,17 +17,41 @@ protected:
 
 };
 
+
 class cTreeTileinfo:public cTileInfo {
 	GDCLASS(cTreeTileinfo,cTileInfo)
 public:
+
+	struct treeInfo {
+		Vector<Ref<Resource>>treePathArr;
+		int count;
+	};
+
+	Ref<FastNoiseLite>noise;
+
 	String treeResPath;
-	String treeDirPath;
+	float threshold;
+	TypedArray<String> treeResArr;
+	TypedArray<int> probabilityArr;
+
+	void set_noise(const Ref<FastNoiseLite>inNoise);
+	Ref<FastNoiseLite>get_noise();
 
 	void set_treeResPath(String inTreeResPath);
 	String get_treeResPath();
 
-	void setTreeDirPath(String inTreeDirPath);
-	String getTreeDirPath();
+	void set_threshold(float inThreshold);
+	float get_threshold();
+
+	void setTreeResArr(const TypedArray<String>&inTreeResArr);
+	TypedArray<String>getTreeResArr();
+
+	void setProbabilityArr(const TypedArray<int>&inProbabilityArr);
+	TypedArray<int>getProbabilityArr();
+
+
+
+	treeInfo getRandomTreePath();
 
 protected:
 	static void _bind_methods();
@@ -41,7 +66,11 @@ public:
 		CROPS,
 	};
 
-	// Ref<FastNoiseLite>noise;
+	Ref<FastNoiseLite>noise;
+
+	String title;
+
+	bool bTerrain = true;
 
 	float threshold;
 
@@ -53,15 +82,23 @@ public:
 
 	int terrainId = 0;
 
+	float weight = 1.0;
+
 	ADDTIVE_TILE_TYPE addtive_tile_type;
 
 	Ref<cTileInfo>addTileInfo;
 
+	void set_title(String inTitle);
+	String get_title();
+
 	void set_threshold(float inThreshold);
 	float get_threshold();
 
-	// void set_noise(const Ref<FastNoiseLite>&inNoise);
-	// Ref<FastNoiseLite>get_noise();
+	void set_noise(const Ref<FastNoiseLite>&inNoise);
+	Ref<FastNoiseLite>get_noise();
+
+	void set_bTerrain(bool inBterrain);
+	bool get_bTerrain();
 
 	void set_sourceID(int inSourceID);
 	int get_sourceID();
@@ -75,6 +112,9 @@ public:
 	void set_terrainID(int inTerrainID);
 	int get_terrainID();
 
+	void set_weight(float inWeight);
+	float get_weight();
+
 	void set_addtive_tile_type(cLayerData::ADDTIVE_TILE_TYPE inAddTiveTileInfo);
 	ADDTIVE_TILE_TYPE get_addtive_tile_type();
 
@@ -85,5 +125,6 @@ public:
 protected:
 	static void _bind_methods();
 };
+
 VARIANT_ENUM_CAST(cLayerData::ADDTIVE_TILE_TYPE);
 

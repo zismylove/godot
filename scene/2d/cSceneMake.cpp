@@ -130,22 +130,36 @@ void cSceneMake::makeBaseTile() {
 			Vector2i treePos = tempTreeData.pos;
 			String treePath = tempTreeData.treePath;
 
-			Vector2 gPos = baseTilemapLayer->to_global(baseTilemapLayer->map_to_local(treePos));
+			int x = treePos.x;
+			int y = treePos.y;
 
-			Ref<PackedScene> ref = ResourceLoader::load("res://placeItem/bigPlant/placeBigPlantTemplate.tscn");
-			if (ref->can_instantiate())
-			{
-				RandomNumberGenerator rng;
-				int randIndex = rng.randi_range(0,theTreeInfo.count-1);
-				Ref<Resource>treeRes = theTreeInfo.treePathArr[randIndex];
+			if(x!=0&&y!=0&&x!=mapSize.x-1&&y!=mapSize.y-1) {
 
-				cPlaceItemNode* tree =Object::cast_to<cPlaceItemNode>(ref->instantiate());
+				Vector2 gPos = baseTilemapLayer->to_global(baseTilemapLayer->map_to_local(treePos));
 
-				Node* root = baseTilemapLayer->get_parent()->get_parent();
-				tree->itemRes = treeRes;
-				root->add_child(tree);
-				tree->set_owner(root);
-				tree->set_global_position(gPos);
+				Ref<PackedScene> ref = ResourceLoader::load("res://placeItem/bigPlant/placeBigPlantTemplate.tscn");
+				if (ref->can_instantiate())
+				{
+					RandomNumberGenerator rng;
+					int randIndex = rng.randi_range(0,theTreeInfo.count-1);
+					Ref<Resource>treeRes = theTreeInfo.treePathArr[randIndex];
+
+					cPlaceItemNode* tree =Object::cast_to<cPlaceItemNode>(ref->instantiate());
+
+					Node* root = baseTilemapLayer->get_parent()->get_parent();
+					Node* plantRoot = root->get_node(NodePath("plantRoot"));
+					if(!plantRoot) {
+						plantRoot=Object::cast_to<Node2D>(ClassDB::instantiate("Node2D"));
+						root->add_child(plantRoot);
+						plantRoot->set_owner(root);
+						plantRoot->set_name("plantRoot");
+					}
+
+					tree->itemRes = treeRes;
+					plantRoot->add_child(tree);
+					tree->set_owner(root);
+					tree->set_global_position(gPos);
+				}
 			}
 		}
 	}
@@ -176,6 +190,9 @@ void cSceneMake::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "baseLayerDatas", PROPERTY_HINT_ARRAY_TYPE, MAKE_RESOURCE_TYPE_HINT("cLayerData")), "set_baseLayerDatas", "get_layerDatas");
 
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "baseTilemapLayer"), "set_baseTilemapLayer", "get_baseTilemapLayer");
+
+	BIND_ENUM_CONSTANT(FOREST);
+	BIND_ENUM_CONSTANT(DESERT);
 
 
 }

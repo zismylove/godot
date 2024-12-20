@@ -70,6 +70,8 @@ void cSceneMake::makeBaseTile() {
 
 	cTreeTileinfo::treeInfo theTreeInfo;
 
+	RandomNumberGenerator rng;
+
 	for(auto& itLayerData:baseLayerDatas) {
 
 		cLayerData* tempLayerData = Object::cast_to<cLayerData>(itLayerData);
@@ -102,8 +104,13 @@ void cSceneMake::makeBaseTile() {
 						continue;
 
 					if(bHasTree) {
-						noiseValue = float(treeTileInfo->noise->get_noise_2d(x,y)+1)/2.0;
-						if(noiseValue<treeTileInfo->threshold) {
+
+						rng.set_seed((x+1)*(y+1));
+						float theV = rng.randf();
+						if(theV<treeTileInfo->threshold){
+
+						// noiseValue = float(treeTileInfo->noise->get_noise_2d(x,y)+1)/2.0;
+						// if(noiseValue<treeTileInfo->threshold) {
 							spawnTreeData tempTreeData;
 							tempTreeData.pos = Vector2i(x,y);
 							tempTreeData.treePath = treePath;
@@ -125,6 +132,17 @@ void cSceneMake::makeBaseTile() {
 			}
 		}
 	}
+
+	Node* root = baseTilemapLayer->get_parent()->get_parent();
+	Node2D* plantRoot = Object::cast_to<Node2D>(root->get_node(NodePath("plantRoot")));
+	if(!plantRoot) {
+		plantRoot=Object::cast_to<Node2D>(ClassDB::instantiate("Node2D"));
+		root->add_child(plantRoot);
+		plantRoot->set_owner(root);
+		plantRoot->set_name("plantRoot");
+		plantRoot->set_y_sort_enabled(true);
+	}
+	Ref<PackedScene> ref = ResourceLoader::load("res://placeItem/bigPlant/placeBigPlantTemplate.tscn");
 	if(treeDataArr.size()>0) {
 		for(auto& tempTreeData:treeDataArr) {
 			Vector2i treePos = tempTreeData.pos;
@@ -137,29 +155,16 @@ void cSceneMake::makeBaseTile() {
 
 				Vector2 gPos = baseTilemapLayer->to_global(baseTilemapLayer->map_to_local(treePos));
 
-				Ref<PackedScene> ref = ResourceLoader::load("res://placeItem/bigPlant/placeBigPlantTemplate.tscn");
-				if (ref->can_instantiate())
-				{
-					RandomNumberGenerator rng;
-					int randIndex = rng.randi_range(0,theTreeInfo.count-1);
-					Ref<Resource>treeRes = theTreeInfo.treePathArr[randIndex];
+				RandomNumberGenerator rng;
+				int randIndex = rng.randi_range(0,theTreeInfo.count-1);
+				Ref<Resource>treeRes = theTreeInfo.treePathArr[randIndex];
 
-					cPlaceItemNode* tree =Object::cast_to<cPlaceItemNode>(ref->instantiate());
+				cPlaceItemNode* tree =Object::cast_to<cPlaceItemNode>(ref->instantiate());
 
-					Node* root = baseTilemapLayer->get_parent()->get_parent();
-					Node* plantRoot = root->get_node(NodePath("plantRoot"));
-					if(!plantRoot) {
-						plantRoot=Object::cast_to<Node2D>(ClassDB::instantiate("Node2D"));
-						root->add_child(plantRoot);
-						plantRoot->set_owner(root);
-						plantRoot->set_name("plantRoot");
-					}
-
-					tree->itemRes = treeRes;
-					plantRoot->add_child(tree);
-					tree->set_owner(root);
-					tree->set_global_position(gPos);
-				}
+				tree->itemRes = treeRes;
+				plantRoot->add_child(tree);
+				tree->set_owner(root);
+				tree->set_global_position(gPos);
 			}
 		}
 	}

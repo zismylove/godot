@@ -160,6 +160,7 @@
 // 2D
 #include "2d/cPlaceItemNode.h"
 #include "2d/cSceneMake.h"
+#include "2d/cShadowMap.h"
 #include "2d/cTilemap.h"
 #include "2d/layerData.h"
 #include "scene/2d/animated_sprite_2d.h"
@@ -836,6 +837,7 @@ void register_scene_types() {
 	GDREGISTER_CLASS(cTreeTileinfo);
 	GDREGISTER_CLASS(cLayerData);
 	GDREGISTER_CLASS(cSceneMake);
+	GDREGISTER_CLASS(cShadowMap);
 
 	GDREGISTER_CLASS(Parallax2D);
 	GDREGISTER_CLASS(ParallaxBackground);

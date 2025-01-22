@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "tile_map_layer.h"
 
+#include <vector>
+
 class cShadowMap:public TileMapLayer {
 	GDCLASS(cShadowMap,TileMapLayer)
 public:
@@ -27,11 +29,19 @@ public:
 
 	void update_noCol(Vector2i midPos);
 
+	TypedArray<Vector2i>indexTilePosMap;
+
+	void init();
+
+	int getTileIndex(Vector2i inPos);
+
 protected:
 
 	static void _bind_methods();
 
 private:
+	std::vector<int>allTileData;
+
 	TypedArray<Vector2i>showTileArr;
 
 };

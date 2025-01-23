@@ -2,6 +2,7 @@
 
 void cShadowMap::set_rayLength(float in_rayLength) {
 	rayLength = in_rayLength;
+	roundSzie = rayLength;
 }
 
 float cShadowMap::get_rayLength() {
@@ -32,30 +33,71 @@ int cShadowMap::get_blackTileSourceId() {
 	return blackTileSourceId;
 }
 
+std::vector<std::pair<int, int>> getPointsInCircle(int centerX, int centerY, int radius) {
+	std::vector<std::pair<int, int>> points;
+
+	// 遍历包含圆的所有可能点的矩形区域
+
+
+	return points;
+}
+
 void cShadowMap::update_noCol(Vector2i midPos) {
 
 	Rect2i mapRect= get_used_rect();
 
 	for (int i=0;i<showTileArr.size();i++) {
 		Vector2i tilePos = showTileArr[i];
-		set_cell(tilePos, blackTileSourceId, blackTileAltasPos);
+		set_cell(tilePos, blackTileSourceId, halfBlackTileAltasPos);
 		int theArrIndex = tilePos.x *mapRect.size.x+tilePos.y;
 		allTileData[theArrIndex] = 0;
 	}
 
+	int centerX = midPos.x;
+	int centerY = midPos.y;
+
+	int startX = centerX - roundSzie;
+	int startY = centerX - roundSzie;
+
+	int endX= centerX + roundSzie;
+	int endY= centerY + roundSzie;
+
+	if(startX<0)
+		startX = 0;
+
+	if(startY<0)
+		startY = 0;
+
+	if(endX>=mapRect.size.x)
+		endX = mapRect.size.x-1;
+	if(endY>=mapRect.size.y)
+		endY = mapRect.size.y-1;
+
 	showTileArr.clear();
-
-	for (int x = midPos.x - roundSzie; x < (midPos.x + roundSzie + 1); x++) {
-		for (int y = midPos.y - roundSzie; y < (midPos.y + roundSzie + 1); y++) {
-			float distance = Math::sqrt(Math::pow(2, (x + 0.5 - midPos.x)) + Math::pow(2, (y + 0.5 - midPos.y)));
-			if (distance <= roundSzie) {
-
+	for (int x =startX; x <= endX; ++x) {
+		for (int y = startY; y <= endY; ++y) {
+			// 检查点 (i, j) 是否在圆内
+			float dx = (float)x - (float)centerX;
+			float dy = (float)y - (float)centerY;
+			if (dx * dx + dy * dy <= (roundSzie * roundSzie)-0.5) {
 				int theArrIndex = x*mapRect.size.x+y;
 				allTileData[theArrIndex] = 1;
 				showTileArr.push_back(Vector2i(x,y));
 			}
 		}
 	}
+
+	// for (int x = midPos.x - roundSzie; x < (midPos.x + roundSzie + 1); x++) {
+	// 	for (int y = midPos.y - roundSzie; y < (midPos.y + roundSzie + 1); y++) {
+	// 		float distance = Math::sqrt(Math::pow(2, (x + 0.5 - midPos.x)) + Math::pow(2, (y + 0.5 - midPos.y)));
+	// 		if (distance <= roundSzie) {
+	//
+	// 			int theArrIndex = x*mapRect.size.x+y;
+	// 			allTileData[theArrIndex] = 1;
+	// 			showTileArr.push_back(Vector2i(x,y));
+	// 		}
+	// 	}
+	// }
 
 	for (auto &tilePos : showTileArr) {
 		int tileMapIndex = getTileIndex(tilePos);
@@ -72,11 +114,11 @@ void cShadowMap::init() {
 	allTileData.resize(mapRect.size.x*mapRect.size.y);
 	std::fill(allTileData.begin(), allTileData.end(), 0);
 
-	indexTilePosMap.resize(256);
+	indexTilePosMap.resize(257);
 
 	indexTilePosMap.fill(Vector2i(0, 0));
 
-	indexTilePosMap[0] = Vector2i(0, 0);
+	indexTilePosMap[0] = Vector2i(0, 1);
 	indexTilePosMap[1] = Vector2i(1, 0);
 	indexTilePosMap[4] = Vector2i(1, 1);
 	indexTilePosMap[16] = Vector2i(1, 2);
@@ -136,6 +178,9 @@ void cShadowMap::init() {
 	indexTilePosMap[223] = Vector2i(13, 3);
 
 	indexTilePosMap[255] = Vector2i(14, 0);
+
+	indexTilePosMap[256] = Vector2i(0, 1);
+
 }
 
 int cShadowMap::getTileIndex(Vector2i inPos) {

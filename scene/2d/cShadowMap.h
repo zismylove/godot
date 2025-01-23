@@ -20,6 +20,8 @@ public:
 
 	Vector2i blackTileAltasPos;
 
+	Vector2i halfBlackTileAltasPos=Vector2i(0,2);
+
 	void set_blackTileAltasPos(Vector2i inBlackTileAltasPob);
 	Vector2i get_blackTileAltasPos();
 

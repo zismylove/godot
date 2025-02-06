@@ -1,5 +1,16 @@
 ﻿#include "cShadowMap.h"
 
+#include "scene/resources/world_2d.h"
+#include "servers/physics_server_2d.h"
+
+void cShadowMap::setShadowMapType(EShadowMapType type) {
+	shadowMapType = type;
+}
+
+EShadowMapType cShadowMap::getShadowMapType() {
+	return shadowMapType;
+}
+
 void cShadowMap::set_rayLength(float in_rayLength) {
 	rayLength = in_rayLength;
 	roundSzie = rayLength;
@@ -38,18 +49,22 @@ std::vector<std::pair<int, int>> getPointsInCircle(int centerX, int centerY, int
 
 	// 遍历包含圆的所有可能点的矩形区域
 
-
 	return points;
 }
 
-void cShadowMap::update_noCol(Vector2i midPos) {
+void cShadowMap::update_noCol(Vector2i inMidPos, int newRange) {
+	midPos = inMidPos;
+	roundSzie = newRange;
 
-	Rect2i mapRect= get_used_rect();
+}
 
-	for (int i=0;i<showTileArr.size();i++) {
+void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
+	midPos = inMidPos;
+	roundSzie = newRange;
+	for (int i = 0; i < showTileArr.size(); i++) {
 		Vector2i tilePos = showTileArr[i];
 		set_cell(tilePos, blackTileSourceId, halfBlackTileAltasPos);
-		int theArrIndex = tilePos.x *mapRect.size.x+tilePos.y;
+		int theArrIndex = tilePos.x * mapRect.size.x + tilePos.y;
 		allTileData[theArrIndex] = 0;
 	}
 
@@ -57,61 +72,69 @@ void cShadowMap::update_noCol(Vector2i midPos) {
 	int centerY = midPos.y;
 
 	int startX = centerX - roundSzie;
-	int startY = centerX - roundSzie;
+	int startY = centerY - roundSzie;
 
-	int endX= centerX + roundSzie;
-	int endY= centerY + roundSzie;
+	int endX = centerX + roundSzie;
+	int endY = centerY + roundSzie;
 
-	if(startX<0)
+	if (startX < 0)
 		startX = 0;
 
-	if(startY<0)
+	if (startY < 0)
 		startY = 0;
 
-	if(endX>=mapRect.size.x)
-		endX = mapRect.size.x-1;
-	if(endY>=mapRect.size.y)
-		endY = mapRect.size.y-1;
+	if (endX >= mapRect.size.x)
+		endX = mapRect.size.x - 1;
+	if (endY >= mapRect.size.y)
+		endY = mapRect.size.y - 1;
 
 	showTileArr.clear();
-	for (int x =startX; x <= endX; ++x) {
+	for (int x = startX; x <= endX; ++x) {
 		for (int y = startY; y <= endY; ++y) {
 			// 检查点 (i, j) 是否在圆内
 			float dx = (float)x - (float)centerX;
 			float dy = (float)y - (float)centerY;
-			if (dx * dx + dy * dy <= (roundSzie * roundSzie)-0.5) {
-				int theArrIndex = x*mapRect.size.x+y;
+			if (dx * dx + dy * dy <= (roundSzie * roundSzie) - 0.5) {
+				int theArrIndex = x * mapRect.size.x + y;
 				allTileData[theArrIndex] = 1;
-				showTileArr.push_back(Vector2i(x,y));
+				showTileArr.push_back(Vector2i(x, y));
 			}
 		}
 	}
 
-	// for (int x = midPos.x - roundSzie; x < (midPos.x + roundSzie + 1); x++) {
-	// 	for (int y = midPos.y - roundSzie; y < (midPos.y + roundSzie + 1); y++) {
-	// 		float distance = Math::sqrt(Math::pow(2, (x + 0.5 - midPos.x)) + Math::pow(2, (y + 0.5 - midPos.y)));
-	// 		if (distance <= roundSzie) {
-	//
-	// 			int theArrIndex = x*mapRect.size.x+y;
-	// 			allTileData[theArrIndex] = 1;
-	// 			showTileArr.push_back(Vector2i(x,y));
-	// 		}
-	// 	}
-	// }
-
 	for (auto &tilePos : showTileArr) {
 		int tileMapIndex = getTileIndex(tilePos);
 		Vector2i tileAltasPos = indexTilePosMap[tileMapIndex];
-		set_cell(tilePos,blackTileSourceId,tileAltasPos);
+		set_cell(tilePos, blackTileSourceId, tileAltasPos);
 	}
+}
+
+void cShadowMap::update_noColSquare(Vector2i inMidPos, int newRange) {
 
 }
 
+void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
+	hideShow();
+	showTileArr = inRange;
+	for (auto &tilePos : showTileArr) {
+
+		Vector2i tempPos = tilePos;
+		int x =tempPos.x;
+		int y =tempPos.y;
+		int theArrIndex = x * mapRect.size.x + y;
+		allTileData[theArrIndex] = 1;
+	}
+	for (auto &tilePos : showTileArr) {
+		int tileMapIndex = getTileIndex(tilePos);
+		Vector2i tileAltasPos = indexTilePosMap[tileMapIndex];
+		set_cell(tilePos, blackTileSourceId, tileAltasPos);
+	}
+}
+
 void cShadowMap::init() {
+	showTileArr.clear();
 
-	Rect2i mapRect = get_used_rect();
-
-	allTileData.resize(mapRect.size.x*mapRect.size.y);
+	allTileData.resize(mapRect.size.x * mapRect.size.y);
 	std::fill(allTileData.begin(), allTileData.end(), 0);
 
 	indexTilePosMap.resize(257);
@@ -180,7 +203,16 @@ void cShadowMap::init() {
 	indexTilePosMap[255] = Vector2i(14, 0);
 
 	indexTilePosMap[256] = Vector2i(0, 1);
+}
 
+void cShadowMap::resize(Vector2i newSize) {
+	mapRect.size = newSize;
+	for (int x = 0; x < newSize.x; x++) {
+		for (int y = 0; y < newSize.y; y++) {
+			set_cell(Vector2i(x, y), blackTileSourceId, blackTileAltasPos);
+		}
+	}
+	init();
 }
 
 int cShadowMap::getTileIndex(Vector2i inPos) {
@@ -190,45 +222,45 @@ int cShadowMap::getTileIndex(Vector2i inPos) {
 	int tempX = inPos.x;
 	int tempY = inPos.y;
 
-	Rect2i mapRect= get_used_rect();
-
 	int endX = mapRect.position.x + mapRect.size.x;
 	int endY = mapRect.position.y + mapRect.size.y;
+
+	int xSize = mapRect.size.x;
 
 	if (tempX >= endX || tempX <= mapRect.position.x || tempY >= endY || tempY <= mapRect.position.y)
 		return 0;
 
 	tempX = x + 1;
 	tempY = y - 1;
-	int NE = allTileData[tempX * 40 + tempY] * 2;
+	int NE = allTileData[tempX * xSize + tempY] * 2;
 
 	tempX = x + 1;
 	tempY = y + 1;
-	int SE = allTileData[tempX * 40 + tempY] * 8;
+	int SE = allTileData[tempX * xSize + tempY] * 8;
 
 	tempX = x - 1;
 	tempY = y + 1;
-	int SW = allTileData[tempX * 40 + tempY] * 32;
+	int SW = allTileData[tempX * xSize + tempY] * 32;
 
 	tempX = x - 1;
 	tempY = y - 1;
-	int NW = allTileData[tempX * 40 + tempY] * 128;
+	int NW = allTileData[tempX * xSize + tempY] * 128;
 
 	tempX = x;
 	tempY = y - 1;
-	int N = allTileData[tempX * 40 + tempY];
+	int N = allTileData[tempX * xSize + tempY];
 
 	tempX = x - 1;
 	tempY = y;
-	int W = allTileData[tempX * 40 + tempY] * 64;
+	int W = allTileData[tempX * xSize + tempY] * 64;
 
 	tempX = x + 1;
 	tempY = y;
-	int E = allTileData[tempX * 40 + tempY] * 4;
+	int E = allTileData[tempX * xSize + tempY] * 4;
 
 	tempX = x;
 	tempY = y + 1;
-	int S = allTileData[tempX * 40 + tempY] * 16;
+	int S = allTileData[tempX * xSize + tempY] * 16;
 
 	if (N == 0) {
 		NE = 0;
@@ -253,9 +285,59 @@ int cShadowMap::getTileIndex(Vector2i inPos) {
 	return N + NE + E + SE + S + SW + W + NW;
 }
 
+void cShadowMap::fill() {
+	int endX = mapRect.size.x;
+	int endY = mapRect.size.y;
+
+	for (int x = 0; x < endX; x++) {
+		for (int y = 0; y < endY; y++) {
+			set_cell(Vector2i(x, y), blackTileSourceId, blackTileAltasPos);
+		}
+	}
+}
+
+void cShadowMap::hideShow() {
+	for (auto &tilePos : showTileArr) {
+		erase_cell(tilePos);
+		Vector2i tempPos = tilePos;
+		int x =tempPos.x;
+		int y =tempPos.y;
+		int theArrIndex = x * mapRect.size.x + y;
+		allTileData[theArrIndex] = 0;
+	}
+	showTileArr.clear();
+}
+
+void cShadowMap::collisionDispose() {
+	uint32_t colMask;
+	TypedArray<RID>excludeRID;
+	Vector2 startPos;
+	Vector2 endPos;
+
+	PhysicsDirectSpaceState2D* state2d = get_world_2d()->get_direct_space_state();
+
+	Ref<PhysicsRayQueryParameters2D>query = PhysicsRayQueryParameters2D::create(startPos,endPos,colMask,excludeRID);
+
+	PhysicsDirectSpaceState2D::RayResult theRes;
+	state2d->intersect_ray(query->get_parameters(),theRes);
+
+}
+
+
 void cShadowMap::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("fill"), &cShadowMap::fill);
+	ClassDB::bind_method(D_METHOD("hideShow"), &cShadowMap::hideShow);
+
 	ClassDB::bind_method(D_METHOD("update_noCol", "midPos"), &cShadowMap::update_noCol);
-	ClassDB::bind_method(D_METHOD("init"),&cShadowMap::init);
+	ClassDB::bind_method(D_METHOD("init"), &cShadowMap::init);
+	ClassDB::bind_method(D_METHOD("resize", "newsize"), &cShadowMap::resize);
+
+	ClassDB::bind_method(D_METHOD("update_noColCircle", "inMidPos,newRange"), &cShadowMap::update_noColCircle);
+	ClassDB::bind_method(D_METHOD("update_noColSquare", "inMidPos,newRange"), &cShadowMap::update_noColCircle);
+	ClassDB::bind_method(D_METHOD("update_specialBuff", "inRange"), &cShadowMap::update_specialBuff);
+
+	ClassDB::bind_method(D_METHOD("setShadowMapType", "shadowMapType"), &cShadowMap::setShadowMapType);
+	ClassDB::bind_method(D_METHOD("getShadowMapType"), &cShadowMap::getShadowMapType);
 
 	ClassDB::bind_method(D_METHOD("set_rayLength", "rayLength"), &cShadowMap::set_rayLength);
 	ClassDB::bind_method(D_METHOD("get_rayLength"), &cShadowMap::get_rayLength);
@@ -270,4 +352,6 @@ void cShadowMap::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "colMask", PROPERTY_HINT_NONE ), "set_colMask", "get_colMask");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "blackTileAltasPos", PROPERTY_HINT_NONE ), "set_blackTileAltasPos", "get_blackTileAltasPos");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "blackTileSourceId", PROPERTY_HINT_NONE ), "set_blackTileSourceId", "get_blackTileSourceId");
+
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "shadowMapType", PROPERTY_HINT_ENUM,"shadowMap,buff,itemRange" ), "setShadowMapType", "getShadowMapType");
 }

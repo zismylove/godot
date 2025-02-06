@@ -3,12 +3,26 @@
 
 #include <vector>
 
+enum EShadowMapType {
+	E_SHADOWMAP,
+	E_BUFFER,
+	E_ITEMRANGE,
+};
+
 class cShadowMap:public TileMapLayer {
 	GDCLASS(cShadowMap,TileMapLayer)
 public:
+
+	EShadowMapType shadowMapType;
+
+	void setShadowMapType(EShadowMapType type);
+	EShadowMapType getShadowMapType();
+
 	float rayLength = 400;
 
 	int roundSzie = 10;
+
+	Rect2i mapRect = Rect2i(0, 0, 40, 40);
 
 	void set_rayLength(float in_rayLength);
 	float get_rayLength();
@@ -29,13 +43,27 @@ public:
 	void set_blackTileSourceId(int inBlackTileSourceId);
 	int get_blackTileSourceId();
 
-	void update_noCol(Vector2i midPos);
+	void update_noCol(Vector2i midPos,int newRange=10);
+
+	void update_noColCircle(Vector2i inMidPos,int newRange=10);
+
+	void update_noColSquare(Vector2i inMidPos,int newRange=10);
+
+	void update_specialBuff(TypedArray<Vector2i>inRange);
 
 	TypedArray<Vector2i>indexTilePosMap;
 
 	void init();
 
+	void resize(Vector2i newSize);
+
 	int getTileIndex(Vector2i inPos);
+
+	void fill();
+
+	void hideShow();
+
+	void collisionDispose();
 
 protected:
 
@@ -46,4 +74,7 @@ private:
 
 	TypedArray<Vector2i>showTileArr;
 
+	Vector2i midPos;
 };
+
+VARIANT_ENUM_CAST(EShadowMapType);

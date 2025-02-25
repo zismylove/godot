@@ -3,6 +3,8 @@
 #include "scene/resources/world_2d.h"
 #include "servers/physics_server_2d.h"
 
+#include <string>
+
 void cShadowMap::setShadowMapType(EShadowMapType type) {
 	shadowMapType = type;
 }
@@ -61,10 +63,12 @@ void cShadowMap::update_noCol(Vector2i inMidPos, int newRange) {
 void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 	midPos = inMidPos;
 	roundSzie = newRange;
+	print_line(("the 0 size is"+std::string(std::to_string(showTileArr.size()))).c_str());
+
 	for (int i = 0; i < showTileArr.size(); i++) {
 		Vector2i tilePos = showTileArr[i];
 		set_cell(tilePos, blackTileSourceId, halfBlackTileAltasPos);
-		int theArrIndex = tilePos.x * mapRect.size.x + tilePos.y;
+		int theArrIndex = tilePos.x * mapRect.size.y + tilePos.y;
 		allTileData[theArrIndex] = 0;
 	}
 
@@ -95,7 +99,7 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 			float dx = (float)x - (float)centerX;
 			float dy = (float)y - (float)centerY;
 			if (dx * dx + dy * dy <= (roundSzie * roundSzie) - 0.5) {
-				int theArrIndex = x * mapRect.size.x + y;
+				int theArrIndex = x * mapRect.size.y + y;
 				allTileData[theArrIndex] = 1;
 				showTileArr.push_back(Vector2i(x, y));
 			}
@@ -121,7 +125,7 @@ void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
 		Vector2i tempPos = tilePos;
 		int x =tempPos.x;
 		int y =tempPos.y;
-		int theArrIndex = x * mapRect.size.x + y;
+		int theArrIndex = x * mapRect.size.y + y;
 		allTileData[theArrIndex] = 1;
 	}
 	for (auto &tilePos : showTileArr) {
@@ -138,9 +142,7 @@ void cShadowMap::init() {
 	std::fill(allTileData.begin(), allTileData.end(), 0);
 
 	indexTilePosMap.resize(257);
-
 	indexTilePosMap.fill(Vector2i(0, 0));
-
 	indexTilePosMap[0] = Vector2i(0, 1);
 	indexTilePosMap[1] = Vector2i(1, 0);
 	indexTilePosMap[4] = Vector2i(1, 1);
@@ -225,7 +227,7 @@ int cShadowMap::getTileIndex(Vector2i inPos) {
 	int endX = mapRect.position.x + mapRect.size.x;
 	int endY = mapRect.position.y + mapRect.size.y;
 
-	int xSize = mapRect.size.x;
+	int xSize = mapRect.size.y;
 
 	if (tempX >= endX || tempX <= mapRect.position.x || tempY >= endY || tempY <= mapRect.position.y)
 		return 0;
@@ -302,7 +304,7 @@ void cShadowMap::hideShow() {
 		Vector2i tempPos = tilePos;
 		int x =tempPos.x;
 		int y =tempPos.y;
-		int theArrIndex = x * mapRect.size.x + y;
+		int theArrIndex = x * mapRect.size.y + y;
 		allTileData[theArrIndex] = 0;
 	}
 	showTileArr.clear();

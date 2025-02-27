@@ -118,8 +118,15 @@ void cShadowMap::update_noColSquare(Vector2i inMidPos, int newRange) {
 }
 
 void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
+	TypedArray<Vector2i>canUsePosArr;
+	for (auto &tilePos : inRange) {
+		Vector2i tempPos = tilePos;
+		if (tempPos.x >0&&tempPos.x<mapRect.size.x
+			&&tempPos.y>0&&tempPos.y<mapRect.size.y)
+			canUsePosArr.push_back(tempPos);
+	}
 	hideShow();
-	showTileArr = inRange;
+	showTileArr = canUsePosArr;
 	for (auto &tilePos : showTileArr) {
 
 		Vector2i tempPos = tilePos;

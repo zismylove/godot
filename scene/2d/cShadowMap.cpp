@@ -333,7 +333,7 @@ void cShadowMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("resize", "newsize"), &cShadowMap::resize);
 
 	ClassDB::bind_method(D_METHOD("update_noColCircle", "inMidPos,newRange"), &cShadowMap::update_noColCircle);
-	ClassDB::bind_method(D_METHOD("update_noColSquare", "inMidPos,newRange"), &cShadowMap::update_noColCircle);
+	ClassDB::bind_method(D_METHOD("update_noColSquare", "inMidPos,newRange"), &cShadowMap::update_noColSquare);
 	ClassDB::bind_method(D_METHOD("update_specialBuff", "inRange"), &cShadowMap::update_specialBuff);
 
 	ClassDB::bind_method(D_METHOD("setShadowMapType", "shadowMapType"), &cShadowMap::setShadowMapType);

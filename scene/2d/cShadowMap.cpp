@@ -1,4 +1,4 @@
-﻿#include "cShadowMap.h"
+#include "cShadowMap.h"
 
 #include "scene/resources/world_2d.h"
 #include "servers/physics_server_2d.h"
@@ -11,6 +11,14 @@ void cShadowMap::setShadowMapType(EShadowMapType type) {
 
 EShadowMapType cShadowMap::getShadowMapType() {
 	return shadowMapType;
+}
+
+void cShadowMap::set_mapRect(Rect2i inMapRect) {
+	mapRect = inMapRect;
+}
+
+Rect2i cShadowMap::get_mapRect() {
+	return mapRect;
 }
 
 void cShadowMap::set_rayLength(float in_rayLength) {
@@ -61,7 +69,7 @@ void cShadowMap::update_noCol(Vector2i inMidPos, int newRange) {
 }
 
 void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
-	midPos = inMidPos;
+	midPos = inMidPos+Vector2i(1,1);
 	roundSzie = newRange;
 	print_line(("the 0 size is"+std::string(std::to_string(showTileArr.size()))).c_str());
 
@@ -72,6 +80,8 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 		allTileData[theArrIndex] = 0;
 	}
 
+	print_line(("the 1 allTile size is"+std::string(std::to_string(allTileData.size()))).c_str());
+
 	int centerX = midPos.x;
 	int centerY = midPos.y;
 
@@ -81,16 +91,20 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 	int endX = centerX + roundSzie;
 	int endY = centerY + roundSzie;
 
-	if (startX < 0)
-		startX = 0;
+	startX = std::max(startX,1);
+	startY = std::max(startY,1);
 
-	if (startY < 0)
-		startY = 0;
+	endX = std::min(endX,mapRect.size.x-2);
+	endY = std::min(endY,mapRect.size.y-2);
 
-	if (endX >= mapRect.size.x)
-		endX = mapRect.size.x - 1;
-	if (endY >= mapRect.size.y)
-		endY = mapRect.size.y - 1;
+	// if (endX >= mapRect.size.x)
+	// 	endX = mapRect.size.x - 1;
+	// if (endY >= mapRect.size.y)
+	// 	endY = mapRect.size.y - 1;
+
+	print_line(("the 2 endX is"+std::string(std::to_string(endX))).c_str());
+	print_line(("the 2 endY is"+std::string(std::to_string(endY))).c_str());
+
 
 	showTileArr.clear();
 	for (int x = startX; x <= endX; ++x) {
@@ -105,12 +119,18 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 			}
 		}
 	}
+	print_line(("the 3 centerX is"+std::string(std::to_string(centerX))).c_str());
+	print_line(("the 3 centerY is"+std::string(std::to_string(centerY))).c_str());
+
+
 
 	for (auto &tilePos : showTileArr) {
 		int tileMapIndex = getTileIndex(tilePos);
-		Vector2i tileAltasPos = indexTilePosMap[tileMapIndex];
-		set_cell(tilePos, blackTileSourceId, tileAltasPos);
+
+			Vector2i tileAltasPos = indexTilePosMap[tileMapIndex];
+			set_cell(tilePos, blackTileSourceId, tileAltasPos);
 	}
+
 }
 
 void cShadowMap::update_noColSquare(Vector2i inMidPos, int newRange) {
@@ -121,6 +141,8 @@ void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
 	TypedArray<Vector2i>canUsePosArr;
 	for (auto &tilePos : inRange) {
 		Vector2i tempPos = tilePos;
+		//位置加1偏移
+		tempPos = tempPos+Vector2i(1,1);
 		if (tempPos.x >0&&tempPos.x<mapRect.size.x
 			&&tempPos.y>0&&tempPos.y<mapRect.size.y)
 			canUsePosArr.push_back(tempPos);
@@ -215,7 +237,7 @@ void cShadowMap::init() {
 }
 
 void cShadowMap::resize(Vector2i newSize) {
-	mapRect.size = newSize;
+	mapRect.size = newSize + Vector2i(2,2);
 	for (int x = 0; x < newSize.x; x++) {
 		for (int y = 0; y < newSize.y; y++) {
 			set_cell(Vector2i(x, y), blackTileSourceId, blackTileAltasPos);
@@ -228,48 +250,48 @@ int cShadowMap::getTileIndex(Vector2i inPos) {
 	int x = inPos.x;
 	int y = inPos.y;
 
-	int tempX = inPos.x;
-	int tempY = inPos.y;
+	// int tempX = inPos.x;
+	// int tempY = inPos.y;
+	//
+	// int endX = mapRect.position.x + mapRect.size.x;
+	// int endY = mapRect.position.y + mapRect.size.y;
 
-	int endX = mapRect.position.x + mapRect.size.x;
-	int endY = mapRect.position.y + mapRect.size.y;
+	int ySize = mapRect.size.y;
 
-	int xSize = mapRect.size.y;
+	// if (tempX >= endX-1 || tempX <= mapRect.position.x+1 || tempY >= endY-1 || tempY <= mapRect.position.y+1)
+	// 	return 0;
 
-	if (tempX >= endX || tempX <= mapRect.position.x || tempY >= endY || tempY <= mapRect.position.y)
-		return 0;
-
-	tempX = x + 1;
-	tempY = y - 1;
-	int NE = allTileData[tempX * xSize + tempY] * 2;
+	int tempX = x + 1;
+	int tempY = y - 1;
+	int NE = allTileData[tempX * ySize + tempY] * 2;
 
 	tempX = x + 1;
 	tempY = y + 1;
-	int SE = allTileData[tempX * xSize + tempY] * 8;
+	int SE = allTileData[tempX * ySize + tempY] * 8;
 
 	tempX = x - 1;
 	tempY = y + 1;
-	int SW = allTileData[tempX * xSize + tempY] * 32;
+	int SW = allTileData[tempX * ySize + tempY] * 32;
 
 	tempX = x - 1;
 	tempY = y - 1;
-	int NW = allTileData[tempX * xSize + tempY] * 128;
+	int NW = allTileData[tempX * ySize + tempY] * 128;
 
 	tempX = x;
 	tempY = y - 1;
-	int N = allTileData[tempX * xSize + tempY];
+	int N = allTileData[tempX * ySize + tempY];
 
 	tempX = x - 1;
 	tempY = y;
-	int W = allTileData[tempX * xSize + tempY] * 64;
+	int W = allTileData[tempX * ySize + tempY] * 64;
 
 	tempX = x + 1;
 	tempY = y;
-	int E = allTileData[tempX * xSize + tempY] * 4;
+	int E = allTileData[tempX * ySize + tempY] * 4;
 
 	tempX = x;
 	tempY = y + 1;
-	int S = allTileData[tempX * xSize + tempY] * 16;
+	int S = allTileData[tempX * ySize + tempY] * 16;
 
 	if (N == 0) {
 		NE = 0;
@@ -348,6 +370,9 @@ void cShadowMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setShadowMapType", "shadowMapType"), &cShadowMap::setShadowMapType);
 	ClassDB::bind_method(D_METHOD("getShadowMapType"), &cShadowMap::getShadowMapType);
 
+	ClassDB::bind_method(D_METHOD("set_mapRect", "inMapRect"), &cShadowMap::set_mapRect);
+	ClassDB::bind_method(D_METHOD("get_mapRect"), &cShadowMap::get_mapRect);
+
 	ClassDB::bind_method(D_METHOD("set_rayLength", "rayLength"), &cShadowMap::set_rayLength);
 	ClassDB::bind_method(D_METHOD("get_rayLength"), &cShadowMap::get_rayLength);
 	ClassDB::bind_method(D_METHOD("set_colMask", "colMask"), &cShadowMap::set_colMask);
@@ -357,6 +382,7 @@ void cShadowMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_blackTileSourceId", "blackTileSourceId"), &cShadowMap::set_blackTileSourceId);
 	ClassDB::bind_method(D_METHOD("get_blackTileSourceId"), &cShadowMap::get_blackTileSourceId);
 
+	ADD_PROPERTY(PropertyInfo(Variant::RECT2I, "mapRect", PROPERTY_HINT_NONE ), "set_mapRect", "get_mapRect");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "rayLength", PROPERTY_HINT_NONE ), "set_rayLength", "get_rayLength");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "colMask", PROPERTY_HINT_NONE ), "set_colMask", "get_colMask");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "blackTileAltasPos", PROPERTY_HINT_NONE ), "set_blackTileAltasPos", "get_blackTileAltasPos");

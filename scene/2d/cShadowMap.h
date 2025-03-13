@@ -23,6 +23,8 @@ public:
 	int roundSzie = 10;
 
 	Rect2i mapRect = Rect2i(0, 0, 40, 40);
+	void set_mapRect(Rect2i inMapRect);
+	Rect2i get_mapRect();
 
 	void set_rayLength(float in_rayLength);
 	float get_rayLength();

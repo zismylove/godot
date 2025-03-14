@@ -71,7 +71,7 @@ void cShadowMap::update_noCol(Vector2i inMidPos, int newRange) {
 void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 	midPos = inMidPos+Vector2i(1,1);
 	roundSzie = newRange;
-	print_line(("the 0 size is"+std::string(std::to_string(showTileArr.size()))).c_str());
+	// print_line(("the 0 size is"+std::string(std::to_string(showTileArr.size()))).c_str());
 
 	for (int i = 0; i < showTileArr.size(); i++) {
 		Vector2i tilePos = showTileArr[i];
@@ -80,7 +80,7 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 		allTileData[theArrIndex] = 0;
 	}
 
-	print_line(("the 1 allTile size is"+std::string(std::to_string(allTileData.size()))).c_str());
+	// print_line(("the 1 allTile size is"+std::string(std::to_string(allTileData.size()))).c_str());
 
 	int centerX = midPos.x;
 	int centerY = midPos.y;
@@ -97,14 +97,8 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 	endX = std::min(endX,mapRect.size.x-2);
 	endY = std::min(endY,mapRect.size.y-2);
 
-	// if (endX >= mapRect.size.x)
-	// 	endX = mapRect.size.x - 1;
-	// if (endY >= mapRect.size.y)
-	// 	endY = mapRect.size.y - 1;
-
-	print_line(("the 2 endX is"+std::string(std::to_string(endX))).c_str());
-	print_line(("the 2 endY is"+std::string(std::to_string(endY))).c_str());
-
+	// print_line(("the 2 endX is"+std::string(std::to_string(endX))).c_str());
+	// print_line(("the 2 endY is"+std::string(std::to_string(endY))).c_str());
 
 	showTileArr.clear();
 	for (int x = startX; x <= endX; ++x) {
@@ -119,10 +113,9 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 			}
 		}
 	}
-	print_line(("the 3 centerX is"+std::string(std::to_string(centerX))).c_str());
-	print_line(("the 3 centerY is"+std::string(std::to_string(centerY))).c_str());
-
-
+	// print_line(("the 3 centerX is"+std::string(std::to_string(centerX))).c_str());
+	// print_line(("the 3 centerY is"+std::string(std::to_string(centerY))).c_str());
+	//
 
 	for (auto &tilePos : showTileArr) {
 		int tileMapIndex = getTileIndex(tilePos);

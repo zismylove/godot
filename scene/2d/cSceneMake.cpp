@@ -44,7 +44,7 @@ NodePath cSceneMake::get_baseTilemapLayer() const {
 	return baseTilemapLayerPath;
 }
 
-void cSceneMake::makeBaseTile() {
+void cSceneMake::makeBaseTile(bool bClearTree) {
 	//构建基础层
 	if(baseTilemapLayerPath.is_empty()) {
 		ERR_PRINT("the baselayer is null");
@@ -141,6 +141,17 @@ void cSceneMake::makeBaseTile() {
 		plantRoot->set_owner(root);
 		plantRoot->set_name("plantRoot");
 		plantRoot->set_y_sort_enabled(true);
+	} else {
+		if(bClearTree) {
+			TypedArray<Node> children = plantRoot->get_children();
+			for(int i=0;i<children.size();i++) {
+				Node* child =Object::cast_to<Node>(children[i]);
+				if(child)
+				{
+					child->queue_free();
+				}
+			}
+		}
 	}
 	Ref<PackedScene> ref = ResourceLoader::load("res://placeItem/bigPlant/placeBigPlantTemplate.tscn");
 	if(treeDataArr.size()>0) {
@@ -161,10 +172,12 @@ void cSceneMake::makeBaseTile() {
 
 				cPlaceItemNode* tree =Object::cast_to<cPlaceItemNode>(ref->instantiate());
 
-				tree->itemRes = treeRes;
+				tree->set_itemRes(treeRes);
 				plantRoot->add_child(tree);
 				tree->set_owner(root);
+				tree->set_name(String("tree"));
 				tree->set_global_position(gPos);
+				tree->nat_setupPlaceItem(Dictionary());
 			}
 		}
 	}
@@ -172,7 +185,7 @@ void cSceneMake::makeBaseTile() {
 
 
 void cSceneMake::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("makeBaseTile"), &cSceneMake::makeBaseTile);
+	ClassDB::bind_method(D_METHOD("makeBaseTile", "bClearTree"), &cSceneMake::makeBaseTile);
 
 	ClassDB::bind_method(D_METHOD("set_mapsize", "mapsize"), &cSceneMake::set_mapsize);
 	ClassDB::bind_method(D_METHOD("get_mapsize"), &cSceneMake::get_mapsize);
@@ -198,6 +211,4 @@ void cSceneMake::_bind_methods() {
 
 	BIND_ENUM_CONSTANT(FOREST);
 	BIND_ENUM_CONSTANT(DESERT);
-
-
 }

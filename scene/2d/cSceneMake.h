@@ -55,7 +55,7 @@ public:
 
 public:
 
-	void makeBaseTile();
+	void makeBaseTile(bool bClearTree=false);
 
 protected:
 	static void _bind_methods();

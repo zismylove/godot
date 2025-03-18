@@ -11,7 +11,11 @@ public:
 	void set_itemRes(const Ref<Resource>&inItemRes);
 	Ref<Resource>get_itemRes();
 
+	void nat_setupPlaceItem(const Dictionary& inData);
+
 protected:
 	static void _bind_methods();
+	GDVIRTUAL1(setupPlaceItem, Dictionary);
+	// void _setupPlaceItem(const Dictionary& inData);
 
 };

@@ -346,12 +346,10 @@ void cShadowMap::fill() {
 }
 
 void cShadowMap::hideShow() {
-	for (auto &tilePos : showTileArr) {
-		erase_cell(tilePos);
-		Vector2i tempPos = tilePos;
-		int x =tempPos.x;
-		int y =tempPos.y;
-		int theArrIndex = x * mapRect.size.y + y;
+	for (int i = 0; i < showTileArr.size(); i++) {
+		Vector2i tilePos = showTileArr[i];
+		set_cell(tilePos, blackTileSourceId, halfBlackTileAltasPos);
+		int theArrIndex = tilePos.x * mapRect.size.y + tilePos.y;
 		allTileData[theArrIndex] = 0;
 	}
 	showTileArr.clear();

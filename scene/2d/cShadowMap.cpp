@@ -157,6 +157,31 @@ void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
 	}
 }
 
+void cShadowMap::update_specialBuffSignleCell(TypedArray<Vector2i> inRange) {
+	TypedArray<Vector2i>canUsePosArr;
+	for (auto &tilePos : inRange) {
+		Vector2i tempPos = tilePos;
+		//位置加1偏移
+		tempPos = tempPos+Vector2i(1,1);
+		if (tempPos.x >0&&tempPos.x<mapRect.size.x
+			&&tempPos.y>0&&tempPos.y<mapRect.size.y)
+				canUsePosArr.push_back(tempPos);
+	}
+	hideShow();
+	showTileArr = canUsePosArr;
+	for (auto &tilePos : showTileArr) {
+
+		Vector2i tempPos = tilePos;
+		int x =tempPos.x;
+		int y =tempPos.y;
+		int theArrIndex = x * mapRect.size.y + y;
+		allTileData[theArrIndex] = 1;
+	}
+	for (auto &tilePos : showTileArr) {
+		set_cell(tilePos, blackTileSourceId, Vector2(0,0));
+	}
+}
+
 void cShadowMap::init() {
 	showTileArr.clear();
 
@@ -359,6 +384,8 @@ void cShadowMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("update_noColCircle", "inMidPos,newRange"), &cShadowMap::update_noColCircle);
 	ClassDB::bind_method(D_METHOD("update_noColSquare", "inMidPos,newRange"), &cShadowMap::update_noColSquare);
 	ClassDB::bind_method(D_METHOD("update_specialBuff", "inRange"), &cShadowMap::update_specialBuff);
+
+	ClassDB::bind_method(D_METHOD("update_specialBuffSignleCell", "inRange"), &cShadowMap::update_specialBuffSignleCell);
 
 	ClassDB::bind_method(D_METHOD("setShadowMapType", "shadowMapType"), &cShadowMap::setShadowMapType);
 	ClassDB::bind_method(D_METHOD("getShadowMapType"), &cShadowMap::getShadowMapType);

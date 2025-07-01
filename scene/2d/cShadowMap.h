@@ -53,6 +53,8 @@ public:
 
 	void update_specialBuff(TypedArray<Vector2i>inRange);
 
+	void update_specialBuffSignleCell(TypedArray<Vector2i>inRange);
+
 	TypedArray<Vector2i>indexTilePosMap;
 
 	void init();

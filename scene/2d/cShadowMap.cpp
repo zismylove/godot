@@ -69,7 +69,11 @@ void cShadowMap::update_noCol(Vector2i inMidPos, int newRange) {
 }
 
 void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
-	midPos = inMidPos+Vector2i(1,1);
+
+	Vector2i relPos = inMidPos - mapRect.position;
+
+	midPos = relPos+Vector2i(1,1);
+
 	roundSzie = newRange;
 	// print_line(("the 0 size is"+std::string(std::to_string(showTileArr.size()))).c_str());
 
@@ -134,6 +138,7 @@ void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
 	TypedArray<Vector2i>canUsePosArr;
 	for (auto &tilePos : inRange) {
 		Vector2i tempPos = tilePos;
+		tempPos -= mapRect.position;
 		//位置加1偏移
 		tempPos = tempPos+Vector2i(1,1);
 		if (tempPos.x >0&&tempPos.x<mapRect.size.x
@@ -161,6 +166,7 @@ void cShadowMap::update_specialBuffSignleCell(TypedArray<Vector2i> inRange) {
 	TypedArray<Vector2i>canUsePosArr;
 	for (auto &tilePos : inRange) {
 		Vector2i tempPos = tilePos;
+		tempPos = tempPos - mapRect.position;
 		//位置加1偏移
 		tempPos = tempPos+Vector2i(1,1);
 		if (tempPos.x >0&&tempPos.x<mapRect.size.x

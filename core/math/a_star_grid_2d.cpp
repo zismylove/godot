@@ -258,6 +258,47 @@ void AStarGrid2D::fill_weight_scale_region(const Rect2i &p_region, real_t p_weig
 	}
 }
 
+void AStarGrid2D::set_point_connection_disabled(const Vector2i &p_from_id, const Vector2i &p_to_id, bool p_disabled) {
+	ERR_FAIL_COND_MSG(!is_in_boundsv(p_from_id), vformat("From point %s out of bounds %s.", p_from_id, region));
+	ERR_FAIL_COND_MSG(!is_in_boundsv(p_to_id), vformat("To point %s out of bounds %s.", p_to_id, region));
+	
+	if (p_disabled) {
+		HashMap<Vector2i, RBSet<Vector2i>>::Iterator it = connection_restrictions.find(p_from_id);
+		if (it != connection_restrictions.end()) {
+			it->value.insert(p_to_id);
+		} else {
+			RBSet<Vector2i> restricted_points;
+			restricted_points.insert(p_to_id);
+			connection_restrictions[p_from_id] = restricted_points;
+		}
+	} else {
+		HashMap<Vector2i, RBSet<Vector2i>>::Iterator it = connection_restrictions.find(p_from_id);
+		if (it != connection_restrictions.end()) {
+			it->value.erase(p_to_id);
+			if (it->value.is_empty()) {
+				connection_restrictions.erase(p_from_id);
+			}
+		}
+	}
+}
+
+bool AStarGrid2D::is_point_connection_disabled(const Vector2i &p_from_id, const Vector2i &p_to_id) const {
+	ERR_FAIL_COND_V_MSG(!is_in_boundsv(p_from_id), false, vformat("From point %s out of bounds %s.", p_from_id, region));
+	ERR_FAIL_COND_V_MSG(!is_in_boundsv(p_to_id), false, vformat("To point %s out of bounds %s.", p_to_id, region));
+	
+	return _is_connection_restricted(p_from_id, p_to_id);
+}
+
+void AStarGrid2D::clear_point_connections(const Vector2i &p_id) {
+	ERR_FAIL_COND_MSG(!is_in_boundsv(p_id), vformat("Point %s out of bounds %s.", p_id, region));
+	
+	connection_restrictions.erase(p_id);
+}
+
+void AStarGrid2D::clear_all_connections() {
+	connection_restrictions.clear();
+}
+
 AStarGrid2D::Point *AStarGrid2D::_jump(Point *p_from, Point *p_to) {
 	if (!p_to || p_to->solid) {
 		return nullptr;
@@ -394,19 +435,19 @@ void AStarGrid2D::_get_nbors(Point *p_point, LocalVector<Point *> &r_nbors) {
 		}
 	}
 
-	if (top && !top->solid) {
+	if (top && !top->solid && !_is_connection_restricted(p_point->id, top->id)) {
 		r_nbors.push_back(top);
 		ts0 = true;
 	}
-	if (right && !right->solid) {
+	if (right && !right->solid && !_is_connection_restricted(p_point->id, right->id)) {
 		r_nbors.push_back(right);
 		ts1 = true;
 	}
-	if (bottom && !bottom->solid) {
+	if (bottom && !bottom->solid && !_is_connection_restricted(p_point->id, bottom->id)) {
 		r_nbors.push_back(bottom);
 		ts2 = true;
 	}
-	if (left && !left->solid) {
+	if (left && !left->solid && !_is_connection_restricted(p_point->id, left->id)) {
 		r_nbors.push_back(left);
 		ts3 = true;
 	}
@@ -436,16 +477,16 @@ void AStarGrid2D::_get_nbors(Point *p_point, LocalVector<Point *> &r_nbors) {
 			break;
 	}
 
-	if (td0 && (top_left && !top_left->solid)) {
+	if (td0 && (top_left && !top_left->solid && !_is_connection_restricted(p_point->id, top_left->id))) {
 		r_nbors.push_back(top_left);
 	}
-	if (td1 && (top_right && !top_right->solid)) {
+	if (td1 && (top_right && !top_right->solid && !_is_connection_restricted(p_point->id, top_right->id))) {
 		r_nbors.push_back(top_right);
 	}
-	if (td2 && (bottom_right && !bottom_right->solid)) {
+	if (td2 && (bottom_right && !bottom_right->solid && !_is_connection_restricted(p_point->id, bottom_right->id))) {
 		r_nbors.push_back(bottom_right);
 	}
-	if (td3 && (bottom_left && !bottom_left->solid)) {
+	if (td3 && (bottom_left && !bottom_left->solid && !_is_connection_restricted(p_point->id, bottom_left->id))) {
 		r_nbors.push_back(bottom_left);
 	}
 }
@@ -554,6 +595,7 @@ real_t AStarGrid2D::_compute_cost(const Vector2i &p_from_id, const Vector2i &p_t
 void AStarGrid2D::clear() {
 	points.clear();
 	region = Rect2i();
+	connection_restrictions.clear();
 }
 
 Vector2 AStarGrid2D::get_point_position(const Vector2i &p_id) const {
@@ -695,6 +737,10 @@ void AStarGrid2D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_point_weight_scale", "id"), &AStarGrid2D::get_point_weight_scale);
 	ClassDB::bind_method(D_METHOD("fill_solid_region", "region", "solid"), &AStarGrid2D::fill_solid_region, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("fill_weight_scale_region", "region", "weight_scale"), &AStarGrid2D::fill_weight_scale_region);
+	ClassDB::bind_method(D_METHOD("set_point_connection_disabled", "from_id", "to_id", "disabled"), &AStarGrid2D::set_point_connection_disabled, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("is_point_connection_disabled", "from_id", "to_id"), &AStarGrid2D::is_point_connection_disabled);
+	ClassDB::bind_method(D_METHOD("clear_point_connections", "id"), &AStarGrid2D::clear_point_connections);
+	ClassDB::bind_method(D_METHOD("clear_all_connections"), &AStarGrid2D::clear_all_connections);
 	ClassDB::bind_method(D_METHOD("clear"), &AStarGrid2D::clear);
 
 	ClassDB::bind_method(D_METHOD("get_point_position", "id"), &AStarGrid2D::get_point_position);

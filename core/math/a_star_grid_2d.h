@@ -35,6 +35,8 @@
 #include "core/object/ref_counted.h"
 #include "core/templates/list.h"
 #include "core/templates/local_vector.h"
+#include "core/templates/rb_set.h"
+#include "core/templates/hash_map.h"
 
 class AStarGrid2D : public RefCounted {
 	GDCLASS(AStarGrid2D, RefCounted);
@@ -116,6 +118,10 @@ private:
 	Point *last_closest_point = nullptr;
 
 	uint64_t pass = 1;
+	
+	// Connection restrictions: stores which connections are disabled
+	// Key: from point, Value: set of to points that cannot be reached from key point
+	HashMap<Vector2i, RBSet<Vector2i>> connection_restrictions;
 
 private: // Internal routines.
 	_FORCE_INLINE_ bool _is_walkable(int32_t p_x, int32_t p_y) const {
@@ -142,6 +148,11 @@ private: // Internal routines.
 
 	_FORCE_INLINE_ const Point *_get_point_unchecked(const Vector2i &p_id) const {
 		return &points[p_id.y - region.position.y][p_id.x - region.position.x];
+	}
+
+	_FORCE_INLINE_ bool _is_connection_restricted(const Vector2i &p_from, const Vector2i &p_to) const {
+		HashMap<Vector2i, RBSet<Vector2i>>::ConstIterator it = connection_restrictions.find(p_from);
+		return it != connection_restrictions.end() && it->value.has(p_to);
 	}
 
 	void _get_nbors(Point *p_point, LocalVector<Point *> &r_nbors);
@@ -205,6 +216,11 @@ public:
 
 	void fill_solid_region(const Rect2i &p_region, bool p_solid = true);
 	void fill_weight_scale_region(const Rect2i &p_region, real_t p_weight_scale);
+
+	void set_point_connection_disabled(const Vector2i &p_from_id, const Vector2i &p_to_id, bool p_disabled = true);
+	bool is_point_connection_disabled(const Vector2i &p_from_id, const Vector2i &p_to_id) const;
+	void clear_point_connections(const Vector2i &p_id);
+	void clear_all_connections();
 
 	void clear();
 

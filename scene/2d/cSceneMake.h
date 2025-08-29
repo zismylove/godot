@@ -30,14 +30,39 @@ public:
 
 	TILEMAP_TYPE mapType=FOREST;
 
+	// 基础层相关属性
 	Ref<TileSet>baseLayerTileset;
-
 	TypedArray<cLayerData>baseLayerDatas;
-
 	NodePath baseTilemapLayerPath;
-
 	TileMapLayer* baseTilemapLayer;
 
+	// 第二层相关属性
+	Ref<TileSet>secondLayerTileset;
+	TypedArray<cLayerData>secondLayerDatas;
+	NodePath secondTilemapLayerPath;
+	TileMapLayer* secondTilemapLayer;
+
+	// 第三层相关属性
+	Ref<TileSet>thirdLayerTileset;
+	TypedArray<cLayerData>thirdLayerDatas;
+	NodePath thirdTilemapLayerPath;
+	TileMapLayer* thirdTilemapLayer;
+
+	// 层级控制参数
+	float secondLayerThreshold = 0.3f;  // 第二层生成阈值(0-1)
+	float thirdLayerThreshold = 0.6f;   // 第三层生成阈值(0-1)
+	
+	// 各层独立的形状控制参数
+	float baseLayerNoiseFreq = 1.0f;      // 基础层噪声频率（越小形状越大）
+	float baseLayerContinuity = 0.3f;     // 基础层连续性阈值
+	
+	float secondLayerNoiseFreq = 1.5f;    // 第二层噪声频率
+	float secondLayerContinuity = 0.4f;   // 第二层连续性阈值
+	
+	float thirdLayerNoiseFreq = 2.0f;     // 第三层噪声频率
+	float thirdLayerContinuity = 0.5f;    // 第三层连续性阈值
+
+	// 基础层方法
 	void set_mapsize(Vector2i inMapsize);
 	Vector2i get_mapsize();
 
@@ -53,12 +78,62 @@ public:
 	void set_baseTilemapLayer(const NodePath& inBaseTilemapLayer);
 	NodePath get_baseTilemapLayer() const;
 
+	// 第二层方法
+	void set_secondLayerDatas(const TypedArray<cLayerData> &inLayerDatas);
+	TypedArray<cLayerData>get_secondLayerDatas();
+
+	void set_SecondLayerTileset(Ref<TileSet>inSecondLayerTileset);
+	Ref<TileSet> get_secondLayerTileset();
+
+	void set_secondTilemapLayer(const NodePath& inSecondTilemapLayer);
+	NodePath get_secondTilemapLayer() const;
+
+	// 第三层方法
+	void set_thirdLayerDatas(const TypedArray<cLayerData> &inLayerDatas);
+	TypedArray<cLayerData>get_thirdLayerDatas();
+
+	void set_ThirdLayerTileset(Ref<TileSet>inThirdLayerTileset);
+	Ref<TileSet> get_thirdLayerTileset();
+
+	void set_thirdTilemapLayer(const NodePath& inThirdTilemapLayer);
+	NodePath get_thirdTilemapLayer() const;
+
+	// 层级控制参数方法
+	void set_secondLayerThreshold(float threshold);
+	float get_secondLayerThreshold() const;
+
+	void set_thirdLayerThreshold(float threshold);
+	float get_thirdLayerThreshold() const;
+
+	// 各层形状控制参数方法
+	void set_baseLayerNoiseFreq(float freq);
+	float get_baseLayerNoiseFreq() const;
+	void set_baseLayerContinuity(float continuity);
+	float get_baseLayerContinuity() const;
+	
+	void set_secondLayerNoiseFreq(float freq);
+	float get_secondLayerNoiseFreq() const;
+	void set_secondLayerContinuity(float continuity);
+	float get_secondLayerContinuity() const;
+	
+	void set_thirdLayerNoiseFreq(float freq);
+	float get_thirdLayerNoiseFreq() const;
+	void set_thirdLayerContinuity(float continuity);
+	float get_thirdLayerContinuity() const;
+
 public:
 
 	void makeBaseTile(bool bClearTree=false);
 
 protected:
 	static void _bind_methods();
+	
+private:
+	// 私有辅助方法：处理单个层的生成
+	void processLayer(TileMapLayer* layer, const TypedArray<cLayerData>& layerDatas, 
+		const Ref<TileSet>& tileset, Vector<spawnTreeData>& treeDataArr, 
+		cTreeTileinfo::treeInfo& theTreeInfo, int layerIndex,
+		float noiseFreq, float continuityThreshold);
 };
 
 VARIANT_ENUM_CAST(cSceneMake::TILEMAP_TYPE);

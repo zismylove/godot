@@ -121,9 +121,11 @@ void cShadowMap::update_noColCircle(Vector2i inMidPos, int newRange) {
 	// print_line(("the 3 centerY is"+std::string(std::to_string(centerY))).c_str());
 	//
 
+	int allArrSize = indexTilePosMap.size();
 	for (auto &tilePos : showTileArr) {
 		int tileMapIndex = getTileIndex(tilePos);
-
+			if(tileMapIndex>=allArrSize||tileMapIndex<0)
+				continue;
 			Vector2i tileAltasPos = indexTilePosMap[tileMapIndex];
 			set_cell(tilePos, blackTileSourceId, tileAltasPos);
 	}
@@ -155,8 +157,11 @@ void cShadowMap::update_specialBuff(TypedArray<Vector2i> inRange) {
 		int theArrIndex = x * mapRect.size.y + y;
 		allTileData[theArrIndex] = 1;
 	}
+	int allArrSize = indexTilePosMap.size();
 	for (auto &tilePos : showTileArr) {
 		int tileMapIndex = getTileIndex(tilePos);
+		if(tileMapIndex>=allArrSize||tileMapIndex<0)
+			continue;
 		Vector2i tileAltasPos = indexTilePosMap[tileMapIndex];
 		set_cell(tilePos, blackTileSourceId, tileAltasPos);
 	}

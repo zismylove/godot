@@ -61,6 +61,9 @@ public:
 	
 	float thirdLayerNoiseFreq = 2.0f;     // 第三层噪声频率
 	float thirdLayerContinuity = 0.5f;    // 第三层连续性阈值
+	
+	// 随机种子
+	int randomSeed = 12345;                // 随机种子，影响所有随机生成
 
 	// 基础层方法
 	void set_mapsize(Vector2i inMapsize);
@@ -120,6 +123,10 @@ public:
 	float get_thirdLayerNoiseFreq() const;
 	void set_thirdLayerContinuity(float continuity);
 	float get_thirdLayerContinuity() const;
+	
+	// 随机种子方法
+	void set_randomSeed(int seed);
+	int get_randomSeed() const;
 
 public:
 

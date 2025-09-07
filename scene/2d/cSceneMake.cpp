@@ -162,6 +162,15 @@ float cSceneMake::get_thirdLayerContinuity() const {
 	return thirdLayerContinuity;
 }
 
+// 随机种子方法实现
+void cSceneMake::set_randomSeed(int seed) {
+	randomSeed = seed;
+}
+
+int cSceneMake::get_randomSeed() const {
+	return randomSeed;
+}
+
 // 私有辅助方法：处理单个层的生成
 void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>& layerDatas, 
 	const Ref<TileSet>& tileset, Vector<spawnTreeData>& treeDataArr, 
@@ -184,7 +193,7 @@ void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>&
 	
 	// 创建一个简单的噪声生成器用于形状控制
 	Ref<FastNoiseLite> shapeNoise = memnew(FastNoiseLite);
-	shapeNoise->set_seed(layerIndex * 12345);
+	shapeNoise->set_seed(randomSeed + layerIndex * 1000);
 	
 	for(int x = 0; x < mapSize.x; x++) {
 		for(int y = 0; y < mapSize.y; y++) {
@@ -239,7 +248,7 @@ void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>&
 				
 				// 处理树木生成
 				if(bHasTree && treeTileInfo) {
-					rng.set_seed((x + 1) * (y + 1) + layerIndex * 1000);
+					rng.set_seed(randomSeed + (x + 1) * (y + 1) + layerIndex * 10000);
 					float treeValue = rng.randf();
 					if(treeValue < treeTileInfo->threshold) {
 						spawnTreeData tempTreeData;
@@ -339,6 +348,7 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 				Vector2 gPos = baseTilemapLayer->to_global(baseTilemapLayer->map_to_local(treePos));
 				
 				RandomNumberGenerator rng;
+				rng.set_seed(randomSeed + x * 13 + y * 17);
 				int randIndex = rng.randi_range(0, theTreeInfo.count - 1);
 				Ref<Resource> treeRes = theTreeInfo.treePathArr[randIndex];
 				
@@ -410,6 +420,10 @@ void cSceneMake::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_thirdLayerNoiseFreq"), &cSceneMake::get_thirdLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("set_thirdLayerContinuity", "continuity"), &cSceneMake::set_thirdLayerContinuity);
 	ClassDB::bind_method(D_METHOD("get_thirdLayerContinuity"), &cSceneMake::get_thirdLayerContinuity);
+	
+	// 随机种子方法绑定
+	ClassDB::bind_method(D_METHOD("set_randomSeed", "seed"), &cSceneMake::set_randomSeed);
+	ClassDB::bind_method(D_METHOD("get_randomSeed"), &cSceneMake::get_randomSeed);
 
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "mapSize", PROPERTY_HINT_NONE, ""), "set_mapsize", "get_mapsize");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mapType", PROPERTY_HINT_NONE, "forest,desert"), "set_mapType", "get_maptype");
@@ -433,6 +447,9 @@ void cSceneMake::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerContinuity", "get_secondLayerContinuity");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_thirdLayerNoiseFreq", "get_thirdLayerNoiseFreq");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_thirdLayerContinuity", "get_thirdLayerContinuity");
+	
+	// 随机种子属性
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "randomSeed", PROPERTY_HINT_RANGE, "0,999999"), "set_randomSeed", "get_randomSeed");
 
 	BIND_ENUM_CONSTANT(FOREST);
 	BIND_ENUM_CONSTANT(DESERT);

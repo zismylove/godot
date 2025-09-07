@@ -171,11 +171,32 @@ int cSceneMake::get_randomSeed() const {
 	return randomSeed;
 }
 
+// 树木生成参数方法实现
+void cSceneMake::set_treeMinDistance(int distance) {
+	treeMinDistance = MAX(distance, 1);  // 最小值为1，确保有效距离
+}
+
+int cSceneMake::get_treeMinDistance() const {
+	return treeMinDistance;
+}
+
+// 检查指定位置周围指定距离内是否已经有树木
+bool cSceneMake::hasTreeWithinDistance(const Vector<spawnTreeData>& existingTrees, Vector2i pos, int distance) {
+	for(const auto& tree : existingTrees) {
+		int dx = abs(tree.pos.x - pos.x);
+		int dy = abs(tree.pos.y - pos.y);
+		// 使用切比雪夫距离（棋盘距离），确保周围distance个tile范围内没有其他树
+		if(dx <= distance && dy <= distance) {
+			return true;
+		}
+	}
+	return false;
+}
+
 // 私有辅助方法：处理单个层的生成
 void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>& layerDatas, 
 	const Ref<TileSet>& tileset, Vector<spawnTreeData>& treeDataArr, 
-	cTreeTileinfo::treeInfo& theTreeInfo, int layerIndex,
-	float noiseFreq, float continuityThreshold) {
+	int layerIndex, float noiseFreq, float continuityThreshold) {
 	
 	if(!layer || !tileset.is_valid() || layerDatas.size() == 0) {
 		return;
@@ -216,10 +237,11 @@ void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>&
 		
 		bool bHasTree = tempLayerData->addTileInfo.is_valid();
 		cTreeTileinfo* treeTileInfo = nullptr;
+		cTreeTileinfo::treeInfo currentTreeInfo;
 		if(bHasTree) {
 			treeTileInfo = Object::cast_to<cTreeTileinfo>(*tempLayerData->addTileInfo);
 			if(treeTileInfo) {
-				theTreeInfo = treeTileInfo->getRandomTreePath();
+				currentTreeInfo = treeTileInfo->getRandomTreePath();
 			} else {
 				bHasTree = false;
 			}
@@ -251,10 +273,16 @@ void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>&
 					rng.set_seed(randomSeed + (x + 1) * (y + 1) + layerIndex * 10000);
 					float treeValue = rng.randf();
 					if(treeValue < treeTileInfo->threshold) {
-						spawnTreeData tempTreeData;
-						tempTreeData.pos = Vector2i(x, y);
-						tempTreeData.treePath = "";
-						treeDataArr.append(tempTreeData);
+						// 检查周围指定距离内是否已经有其他树木
+						Vector2i currentPos = Vector2i(x, y);
+						if(!hasTreeWithinDistance(treeDataArr, currentPos, treeMinDistance)) {
+							spawnTreeData tempTreeData;
+							tempTreeData.pos = currentPos;
+							tempTreeData.treePath = "";
+							tempTreeData.treeInfo = currentTreeInfo; // 保存该树对应的完整树信息
+							treeDataArr.append(tempTreeData);
+						}
+						// 如果周围指定距离内有树木就跳过，不添加新树
 					}
 				}
 				
@@ -294,24 +322,23 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 	}
 	
 	Vector<spawnTreeData> treeDataArr;
-	cTreeTileinfo::treeInfo theTreeInfo;
 	
 	// 生成基础层（使用独立的形状控制）
 	print_line("Generating base layer...");
-	processLayer(baseTilemapLayer, baseLayerDatas, baseLayerTileset, treeDataArr, theTreeInfo, 0, 
+	processLayer(baseTilemapLayer, baseLayerDatas, baseLayerTileset, treeDataArr, 0, 
 		baseLayerNoiseFreq, baseLayerContinuity);
 	
 	// 生成第二层（如果配置了）
 	if(secondTilemapLayer && secondLayerTileset.is_valid() && secondLayerDatas.size() > 0) {
 		print_line("Generating second layer...");
-		processLayer(secondTilemapLayer, secondLayerDatas, secondLayerTileset, treeDataArr, theTreeInfo, 1,
+		processLayer(secondTilemapLayer, secondLayerDatas, secondLayerTileset, treeDataArr, 1,
 			secondLayerNoiseFreq, secondLayerContinuity);
 	}
 	
 	// 生成第三层（如果配置了）
 	if(thirdTilemapLayer && thirdLayerTileset.is_valid() && thirdLayerDatas.size() > 0) {
 		print_line("Generating third layer...");
-		processLayer(thirdTilemapLayer, thirdLayerDatas, thirdLayerTileset, treeDataArr, theTreeInfo, 2,
+		processLayer(thirdTilemapLayer, thirdLayerDatas, thirdLayerTileset, treeDataArr, 2,
 			thirdLayerNoiseFreq, thirdLayerContinuity);
 	}
 	
@@ -349,8 +376,8 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 				
 				RandomNumberGenerator rng;
 				rng.set_seed(randomSeed + x * 13 + y * 17);
-				int randIndex = rng.randi_range(0, theTreeInfo.count - 1);
-				Ref<Resource> treeRes = theTreeInfo.treePathArr[randIndex];
+				int randIndex = rng.randi_range(0, tempTreeData.treeInfo.count - 1);
+				Ref<Resource> treeRes = tempTreeData.treeInfo.treePathArr[randIndex];
 				
 				cPlaceItemNode* tree = Object::cast_to<cPlaceItemNode>(ref->instantiate());
 				
@@ -424,6 +451,10 @@ void cSceneMake::_bind_methods() {
 	// 随机种子方法绑定
 	ClassDB::bind_method(D_METHOD("set_randomSeed", "seed"), &cSceneMake::set_randomSeed);
 	ClassDB::bind_method(D_METHOD("get_randomSeed"), &cSceneMake::get_randomSeed);
+	
+	// 树木生成参数方法绑定
+	ClassDB::bind_method(D_METHOD("set_treeMinDistance", "distance"), &cSceneMake::set_treeMinDistance);
+	ClassDB::bind_method(D_METHOD("get_treeMinDistance"), &cSceneMake::get_treeMinDistance);
 
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "mapSize", PROPERTY_HINT_NONE, ""), "set_mapsize", "get_mapsize");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mapType", PROPERTY_HINT_NONE, "forest,desert"), "set_mapType", "get_maptype");
@@ -450,6 +481,9 @@ void cSceneMake::_bind_methods() {
 	
 	// 随机种子属性
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "randomSeed", PROPERTY_HINT_RANGE, "0,999999"), "set_randomSeed", "get_randomSeed");
+	
+	// 树木生成参数属性
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "treeMinDistance", PROPERTY_HINT_RANGE, "1,20"), "set_treeMinDistance", "get_treeMinDistance");
 
 	BIND_ENUM_CONSTANT(FOREST);
 	BIND_ENUM_CONSTANT(DESERT);

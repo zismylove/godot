@@ -19,6 +19,7 @@ public:
 	struct spawnTreeData {
 		Vector2i pos;
 		String treePath;
+		cTreeTileinfo::treeInfo treeInfo; // 保存该树对应的完整树信息
 	};
 
 	enum TILEMAP_TYPE{
@@ -64,6 +65,9 @@ public:
 	
 	// 随机种子
 	int randomSeed = 12345;                // 随机种子，影响所有随机生成
+	
+	// 树木生成参数
+	int treeMinDistance = 4;               // 树木最小间距（tile单位），控制树木之间的最小距离
 
 	// 基础层方法
 	void set_mapsize(Vector2i inMapsize);
@@ -127,6 +131,10 @@ public:
 	// 随机种子方法
 	void set_randomSeed(int seed);
 	int get_randomSeed() const;
+	
+	// 树木生成参数方法
+	void set_treeMinDistance(int distance);
+	int get_treeMinDistance() const;
 
 public:
 
@@ -136,11 +144,13 @@ protected:
 	static void _bind_methods();
 	
 private:
+	// 私有辅助方法：检查指定位置周围指定距离内是否已经有树木
+	bool hasTreeWithinDistance(const Vector<spawnTreeData>& existingTrees, Vector2i pos, int distance);
+	
 	// 私有辅助方法：处理单个层的生成
 	void processLayer(TileMapLayer* layer, const TypedArray<cLayerData>& layerDatas, 
 		const Ref<TileSet>& tileset, Vector<spawnTreeData>& treeDataArr, 
-		cTreeTileinfo::treeInfo& theTreeInfo, int layerIndex,
-		float noiseFreq, float continuityThreshold);
+		int layerIndex, float noiseFreq, float continuityThreshold);
 };
 
 VARIANT_ENUM_CAST(cSceneMake::TILEMAP_TYPE);

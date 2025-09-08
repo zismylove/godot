@@ -650,6 +650,9 @@ void FileSystemDock::_notification(int p_what) {
 }
 
 void FileSystemDock::_tree_multi_selected(Object *p_item, int p_column, bool p_selected) {
+	// Update batch rename button state
+	_update_batch_rename_button_state();
+
 	// Update the import dock.
 	import_dock_needs_update = true;
 	callable_mp(this, &FileSystemDock::_update_import_dock).call_deferred();
@@ -1882,6 +1885,170 @@ void FileSystemDock::_duplicate_operation_confirm() {
 	// Rescan everything.
 	print_verbose("FileSystem: calling rescan.");
 	_rescan();
+}
+
+void FileSystemDock::_batch_rename_button_pressed() {
+	// Get selected files
+	Vector<String> selected_paths;
+	if (display_mode == DISPLAY_MODE_TREE_ONLY) {
+		// Use the tree
+		selected_paths = _tree_get_selected();
+	} else {
+		// Use the file list
+		for (int i = 0; i < files->get_item_count(); i++) {
+			if (files->is_selected(i)) {
+				selected_paths.push_back(files->get_item_metadata(i));
+			}
+		}
+	}
+
+	// Filter out folders and keep only files
+	Vector<String> selected_files;
+	for (const String &path : selected_paths) {
+		if (!path.ends_with("/") && path != "res://") {
+			selected_files.push_back(path);
+		}
+	}
+
+	if (selected_files.size() < 2) {
+		EditorNode::get_singleton()->show_warning(TTR("Please select at least 2 files for batch rename."));
+		return;
+	}
+
+	// Show the batch rename dialog
+	batch_rename_dialog_text->set_text("");
+	batch_rename_dialog->popup_centered(Size2(300, 120) * EDSCALE);
+	batch_rename_dialog_text->grab_focus();
+}
+
+void FileSystemDock::_batch_rename_operation_confirm() {
+	String base_name = batch_rename_dialog_text->get_text().strip_edges();
+	if (base_name.length() == 0) {
+		EditorNode::get_singleton()->show_warning(TTR("No name provided."));
+		return;
+	} else if (base_name.contains("/") || base_name.contains("\\") || base_name.contains(":")) {
+		EditorNode::get_singleton()->show_warning(TTR("Name contains invalid characters."));
+		return;
+	} else if (base_name[0] == '.') {
+		EditorNode::get_singleton()->show_warning(TTR("This filename begins with a dot rendering the file invisible to the editor.\nIf you want to rename it anyway, use your operating system's file manager."));
+		return;
+	}
+
+	// Get selected files again
+	Vector<String> selected_paths;
+	if (display_mode == DISPLAY_MODE_TREE_ONLY) {
+		// Use the tree
+		selected_paths = _tree_get_selected();
+	} else {
+		// Use the file list
+		for (int i = 0; i < files->get_item_count(); i++) {
+			if (files->is_selected(i)) {
+				selected_paths.push_back(files->get_item_metadata(i));
+			}
+		}
+	}
+
+	// Filter out folders and keep only files
+	Vector<String> selected_files;
+	for (const String &path : selected_paths) {
+		if (!path.ends_with("/") && path != "res://") {
+			selected_files.push_back(path);
+		}
+	}
+
+	if (selected_files.size() < 2) {
+		EditorNode::get_singleton()->show_warning(TTR("Please select at least 2 files for batch rename."));
+		return;
+	}
+
+	HashMap<String, ResourceUID::ID> uids;
+	HashSet<String> file_owners;
+	_before_move(uids, file_owners);
+
+	HashMap<String, String> file_renames;
+	HashMap<String, String> folder_renames;
+
+	// Perform batch rename
+	Ref<DirAccess> da = DirAccess::create(DirAccess::ACCESS_RESOURCES);
+	int next_number = 1;
+	
+	for (int i = 0; i < selected_files.size(); i++) {
+		const String &old_path = selected_files[i];
+		String extension = old_path.get_extension();
+		String directory = old_path.get_base_dir();
+		
+		// Find an available file name
+		String new_name;
+		String new_path;
+		bool found_available_name = false;
+		
+		while (!found_available_name) {
+			new_name = base_name + String::num(next_number);
+			if (!extension.is_empty()) {
+				new_name += "." + extension;
+			}
+			
+			new_path = directory.path_join(new_name);
+			
+			// Check if new name already exists
+			bool new_exist = (da->file_exists(new_path) || da->dir_exists(new_path));
+			if (!da->is_case_sensitive(new_path.get_base_dir())) {
+				new_exist = new_exist && (new_path.to_lower() != old_path.to_lower());
+			}
+			
+			if (!new_exist) {
+				found_available_name = true;
+			} else {
+				next_number++; // Try next number
+			}
+		}
+		
+		next_number++; // Increment for next file
+
+		FileOrFolder item_to_rename;
+		item_to_rename.path = old_path;
+		item_to_rename.is_file = true;
+
+		_try_move_item(item_to_rename, new_path, file_renames, folder_renames);
+	}
+
+	int current_tab = EditorSceneTabs::get_singleton()->get_current_tab();
+	_update_resource_paths_after_move(file_renames, uids);
+	_update_dependencies_after_move(file_renames, file_owners);
+	_update_project_settings_after_move(file_renames, folder_renames);
+	_update_favorites_list_after_move(file_renames, folder_renames);
+
+	EditorSceneTabs::get_singleton()->set_current_tab(current_tab);
+
+	print_verbose("FileSystem: calling rescan.");
+	_rescan();
+}
+
+void FileSystemDock::_update_batch_rename_button_state() {
+	// Get selected files count
+	Vector<String> selected_paths;
+	if (display_mode == DISPLAY_MODE_TREE_ONLY) {
+		// Use the tree
+		selected_paths = _tree_get_selected();
+	} else {
+		// Use the file list
+		for (int i = 0; i < files->get_item_count(); i++) {
+			if (files->is_selected(i)) {
+				selected_paths.push_back(files->get_item_metadata(i));
+			}
+		}
+	}
+
+	// Filter out folders and keep only files
+	int selected_files_count = 0;
+	for (const String &path : selected_paths) {
+		if (!path.ends_with("/") && path != "res://") {
+			selected_files_count++;
+		}
+	}
+
+	// Enable button only if 2 or more files are selected
+	button_batch_rename->set_disabled(selected_files_count < 2);
 }
 
 void FileSystemDock::_overwrite_dialog_action(bool p_overwrite) {
@@ -3426,6 +3593,9 @@ void FileSystemDock::_file_multi_selected(int p_index, bool p_selected) {
 		}
 	}
 
+	// Update batch rename button state
+	_update_batch_rename_button_state();
+
 	// Update the import dock.
 	import_dock_needs_update = true;
 	callable_mp(this, &FileSystemDock::_update_import_dock).call_deferred();
@@ -3962,6 +4132,15 @@ FileSystemDock::FileSystemDock() {
 	button_toggle_display_mode->set_theme_type_variation("FlatMenuButton");
 	toolbar_hbc->add_child(button_toggle_display_mode);
 
+	button_batch_rename = memnew(Button);
+	button_batch_rename->connect(SceneStringName(pressed), callable_mp(this, &FileSystemDock::_batch_rename_button_pressed));
+	button_batch_rename->set_focus_mode(FOCUS_NONE);
+	button_batch_rename->set_tooltip_text(TTR("Batch Rename Selected Files"));
+	button_batch_rename->set_theme_type_variation("FlatMenuButton");
+	button_batch_rename->set_text(TTR("BRN"));
+	button_batch_rename->set_disabled(true); // Initially disabled
+	toolbar_hbc->add_child(button_batch_rename);
+
 	button_dock_placement = memnew(Button);
 	button_dock_placement->set_flat(true);
 	button_dock_placement->connect(SceneStringName(pressed), callable_mp(this, &FileSystemDock::_change_bottom_dock_placement));
@@ -4112,6 +4291,18 @@ FileSystemDock::FileSystemDock() {
 	add_child(duplicate_dialog);
 	duplicate_dialog->register_text_enter(duplicate_dialog_text);
 	duplicate_dialog->connect(SceneStringName(confirmed), callable_mp(this, &FileSystemDock::_duplicate_operation_confirm));
+
+	batch_rename_dialog = memnew(ConfirmationDialog);
+	VBoxContainer *batch_rename_dialog_vb = memnew(VBoxContainer);
+	batch_rename_dialog->add_child(batch_rename_dialog_vb);
+
+	batch_rename_dialog_text = memnew(LineEdit);
+	batch_rename_dialog_vb->add_margin_child(TTR("Base Name:"), batch_rename_dialog_text);
+	batch_rename_dialog->set_ok_button_text(TTR("Batch Rename"));
+	batch_rename_dialog->set_title(TTR("Batch Rename Files"));
+	add_child(batch_rename_dialog);
+	batch_rename_dialog->register_text_enter(batch_rename_dialog_text);
+	batch_rename_dialog->connect(SceneStringName(confirmed), callable_mp(this, &FileSystemDock::_batch_rename_operation_confirm));
 
 	make_dir_dialog = memnew(DirectoryCreateDialog);
 	add_child(make_dir_dialog);

@@ -164,6 +164,7 @@ private:
 	Button *button_file_list_display_mode = nullptr;
 	Button *button_hist_next = nullptr;
 	Button *button_hist_prev = nullptr;
+	Button *button_batch_rename = nullptr;
 	LineEdit *current_path_line_edit = nullptr;
 
 	HBoxContainer *toolbar2_hbc = nullptr;
@@ -193,6 +194,8 @@ private:
 	EditorDirDialog *move_dialog = nullptr;
 	ConfirmationDialog *duplicate_dialog = nullptr;
 	LineEdit *duplicate_dialog_text = nullptr;
+	ConfirmationDialog *batch_rename_dialog = nullptr;
+	LineEdit *batch_rename_dialog_text = nullptr;
 	DirectoryCreateDialog *make_dir_dialog = nullptr;
 
 	ConfirmationDialog *overwrite_dialog = nullptr;
@@ -291,6 +294,9 @@ private:
 	void _make_scene_confirm();
 	void _rename_operation_confirm();
 	void _duplicate_operation_confirm();
+	void _batch_rename_button_pressed();
+	void _batch_rename_operation_confirm();
+	void _update_batch_rename_button_state();
 	void _overwrite_dialog_action(bool p_overwrite);
 	Vector<String> _check_existing();
 	void _move_operation_confirm(const String &p_to_path, bool p_copy = false, Overwrite p_overwrite = OVERWRITE_UNDECIDED);

@@ -194,47 +194,47 @@ bool cSceneMake::hasTreeWithinDistance(const Vector<spawnTreeData>& existingTree
 }
 
 // 私有辅助方法：处理单个层的生成
-void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>& layerDatas, 
-	const Ref<TileSet>& tileset, Vector<spawnTreeData>& treeDataArr, 
+void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>& layerDatas,
+	const Ref<TileSet>& tileset, Vector<spawnTreeData>& treeDataArr,
 	int layerIndex, float noiseFreq, float continuityThreshold) {
-	
+
 	if(!layer || !tileset.is_valid() || layerDatas.size() == 0) {
 		return;
 	}
-	
+
 	layer->set_tile_set(tileset);
 	layer->clear();
-	
+
 	// 生成该层的形状控制噪声（用于产生大块连续区域）
 	Vector<Vector<float>> shapeNoiseMap;
 	shapeNoiseMap.resize(mapSize.x);
 	for(int x = 0; x < mapSize.x; x++) {
 		shapeNoiseMap.write[x].resize(mapSize.y);
 	}
-	
+
 	// 创建一个简单的噪声生成器用于形状控制
 	Ref<FastNoiseLite> shapeNoise = memnew(FastNoiseLite);
 	shapeNoise->set_seed(randomSeed + layerIndex * 1000);
-	
+
 	for(int x = 0; x < mapSize.x; x++) {
 		for(int y = 0; y < mapSize.y; y++) {
 			// 缩放坐标来控制块大小，noiseFreq越小块越大
 			float scaledX = float(x) / noiseFreq;
 			float scaledY = float(y) / noiseFreq;
-			
+
 			// 用缩放后的坐标生成噪声
 			float noiseValue = (shapeNoise->get_noise_2d(scaledX, scaledY) + 1.0f) / 2.0f; // 转换到0-1范围
 			shapeNoiseMap.write[x].write[y] = noiseValue;
 		}
 	}
-	
+
 	RandomNumberGenerator rng;
-	
+
 	// 处理每个图层数据
 	for(auto& itLayerData : layerDatas) {
 		cLayerData* tempLayerData = Object::cast_to<cLayerData>(itLayerData);
 		if(!tempLayerData) continue;
-		
+
 		bool bHasTree = tempLayerData->addTileInfo.is_valid();
 		cTreeTileinfo* treeTileInfo = nullptr;
 		cTreeTileinfo::treeInfo currentTreeInfo;
@@ -246,28 +246,28 @@ void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>&
 				bHasTree = false;
 			}
 		}
-		
+
 		float threshold = tempLayerData->threshold;
 		spawnTileData tempSpawnData;
 		tempSpawnData.bTerrain = tempLayerData->bTerrain;
 		tempSpawnData.terrainId = tempLayerData->terrainId;
 		tempSpawnData.terrainSet = tempLayerData->terrainSet;
 		tempSpawnData.sourceId = tempLayerData->sourceID;
-		
+
 		for(int x = 0; x < mapSize.x; x++) {
 			for(int y = 0; y < mapSize.y; y++) {
 				// 首先检查形状噪声是否超过连续性阈值（控制大块形状）
 				if(shapeNoiseMap[x][y] < continuityThreshold) {
 					continue;
 				}
-				
+
 				// 在大块区域内，应用图层数据的噪声和阈值进行细节控制
 				float noiseValue = float(tempLayerData->noise->get_noise_2d(x, y) + 1) / 2;
-				
+
 				if(noiseValue < threshold) {
 					continue;
 				}
-				
+
 				// 处理树木生成
 				if(bHasTree && treeTileInfo) {
 					rng.set_seed(randomSeed + (x + 1) * (y + 1) + layerIndex * 10000);
@@ -285,11 +285,11 @@ void cSceneMake::processLayer(TileMapLayer* layer, const TypedArray<cLayerData>&
 						// 如果周围指定距离内有树木就跳过，不添加新树
 					}
 				}
-				
+
 				tempSpawnData.posArr.append(Vector2i(x, y));
 			}
 		}
-		
+
 		// 生成瓦片
 		if(tempLayerData->bTerrain) {
 			layer->set_cells_terrain_connect(tempSpawnData.posArr, tempSpawnData.terrainSet, tempSpawnData.terrainId);
@@ -312,7 +312,7 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 		ERR_PRINT("the baselayer is null");
 		return;
 	}
-	
+
 	// 初始化第二层和第三层
 	if(!secondTilemapLayerPath.is_empty()) {
 		secondTilemapLayer = Object::cast_to<TileMapLayer>(get_node(secondTilemapLayerPath));
@@ -320,28 +320,28 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 	if(!thirdTilemapLayerPath.is_empty()) {
 		thirdTilemapLayer = Object::cast_to<TileMapLayer>(get_node(thirdTilemapLayerPath));
 	}
-	
+
 	Vector<spawnTreeData> treeDataArr;
-	
+
 	// 生成基础层（使用独立的形状控制）
 	print_line("Generating base layer...");
-	processLayer(baseTilemapLayer, baseLayerDatas, baseLayerTileset, treeDataArr, 0, 
+	processLayer(baseTilemapLayer, baseLayerDatas, baseLayerTileset, treeDataArr, 0,
 		baseLayerNoiseFreq, baseLayerContinuity);
-	
+
 	// 生成第二层（如果配置了）
 	if(secondTilemapLayer && secondLayerTileset.is_valid() && secondLayerDatas.size() > 0) {
 		print_line("Generating second layer...");
 		processLayer(secondTilemapLayer, secondLayerDatas, secondLayerTileset, treeDataArr, 1,
 			secondLayerNoiseFreq, secondLayerContinuity);
 	}
-	
+
 	// 生成第三层（如果配置了）
 	if(thirdTilemapLayer && thirdLayerTileset.is_valid() && thirdLayerDatas.size() > 0) {
 		print_line("Generating third layer...");
 		processLayer(thirdTilemapLayer, thirdLayerDatas, thirdLayerTileset, treeDataArr, 2,
 			thirdLayerNoiseFreq, thirdLayerContinuity);
 	}
-	
+
 	// 处理植物生成（原有逻辑保持不变）
 	Node* root = baseTilemapLayer->get_parent()->get_parent();
 	Node2D* plantRoot = Object::cast_to<Node2D>(root->get_node(NodePath("plantRoot")));
@@ -362,7 +362,7 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 			}
 		}
 	}
-	
+
 	// 生成树木
 	Ref<PackedScene> ref = ResourceLoader::load("res://placeItem/bigPlant/placeBigPlantTemplate.tscn");
 	if(treeDataArr.size() > 0) {
@@ -370,27 +370,31 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 			Vector2i treePos = tempTreeData.pos;
 			int x = treePos.x;
 			int y = treePos.y;
-			
+
 			if(x != 0 && y != 0 && x != mapSize.x - 1 && y != mapSize.y - 1) {
 				Vector2 gPos = baseTilemapLayer->to_global(baseTilemapLayer->map_to_local(treePos));
-				
+
 				RandomNumberGenerator rng;
 				rng.set_seed(randomSeed + x * 13 + y * 17);
 				int randIndex = rng.randi_range(0, tempTreeData.treeInfo.count - 1);
 				Ref<Resource> treeRes = tempTreeData.treeInfo.treePathArr[randIndex];
-				
+
+				String thePath = treeRes->get_path();
+
 				cPlaceItemNode* tree = Object::cast_to<cPlaceItemNode>(ref->instantiate());
-				
+
 				tree->set_itemRes(treeRes);
+				// 从文件路径获取文件名（不包含扩展名）作为节点名称
+				String theName = thePath.get_file().get_basename();
 				plantRoot->add_child(tree);
 				tree->set_owner(root);
-				tree->set_name(String("tree"));
+				tree->set_name(theName);
 				tree->set_global_position(gPos);
 				tree->nat_setupPlaceItem(Dictionary());
 			}
 		}
 	}
-	
+
 	print_line("Multi-layer terrain generation completed!");
 }
 
@@ -431,27 +435,27 @@ void cSceneMake::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_secondLayerThreshold"), &cSceneMake::get_secondLayerThreshold);
 	ClassDB::bind_method(D_METHOD("set_thirdLayerThreshold", "threshold"), &cSceneMake::set_thirdLayerThreshold);
 	ClassDB::bind_method(D_METHOD("get_thirdLayerThreshold"), &cSceneMake::get_thirdLayerThreshold);
-	
+
 	// 各层形状控制参数绑定
 	ClassDB::bind_method(D_METHOD("set_baseLayerNoiseFreq", "freq"), &cSceneMake::set_baseLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("get_baseLayerNoiseFreq"), &cSceneMake::get_baseLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("set_baseLayerContinuity", "continuity"), &cSceneMake::set_baseLayerContinuity);
 	ClassDB::bind_method(D_METHOD("get_baseLayerContinuity"), &cSceneMake::get_baseLayerContinuity);
-	
+
 	ClassDB::bind_method(D_METHOD("set_secondLayerNoiseFreq", "freq"), &cSceneMake::set_secondLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("get_secondLayerNoiseFreq"), &cSceneMake::get_secondLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("set_secondLayerContinuity", "continuity"), &cSceneMake::set_secondLayerContinuity);
 	ClassDB::bind_method(D_METHOD("get_secondLayerContinuity"), &cSceneMake::get_secondLayerContinuity);
-	
+
 	ClassDB::bind_method(D_METHOD("set_thirdLayerNoiseFreq", "freq"), &cSceneMake::set_thirdLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("get_thirdLayerNoiseFreq"), &cSceneMake::get_thirdLayerNoiseFreq);
 	ClassDB::bind_method(D_METHOD("set_thirdLayerContinuity", "continuity"), &cSceneMake::set_thirdLayerContinuity);
 	ClassDB::bind_method(D_METHOD("get_thirdLayerContinuity"), &cSceneMake::get_thirdLayerContinuity);
-	
+
 	// 随机种子方法绑定
 	ClassDB::bind_method(D_METHOD("set_randomSeed", "seed"), &cSceneMake::set_randomSeed);
 	ClassDB::bind_method(D_METHOD("get_randomSeed"), &cSceneMake::get_randomSeed);
-	
+
 	// 树木生成参数方法绑定
 	ClassDB::bind_method(D_METHOD("set_treeMinDistance", "distance"), &cSceneMake::set_treeMinDistance);
 	ClassDB::bind_method(D_METHOD("get_treeMinDistance"), &cSceneMake::get_treeMinDistance);
@@ -470,7 +474,7 @@ void cSceneMake::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "thirdTilemapLayer"), "set_thirdTilemapLayer", "get_thirdTilemapLayer");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerThreshold", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerThreshold", "get_secondLayerThreshold");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerThreshold", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_thirdLayerThreshold", "get_thirdLayerThreshold");
-	
+
 	// 各层形状控制参数属性
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "baseLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_baseLayerNoiseFreq", "get_baseLayerNoiseFreq");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "baseLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_baseLayerContinuity", "get_baseLayerContinuity");
@@ -478,10 +482,10 @@ void cSceneMake::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerContinuity", "get_secondLayerContinuity");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_thirdLayerNoiseFreq", "get_thirdLayerNoiseFreq");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_thirdLayerContinuity", "get_thirdLayerContinuity");
-	
+
 	// 随机种子属性
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "randomSeed", PROPERTY_HINT_RANGE, "0,999999"), "set_randomSeed", "get_randomSeed");
-	
+
 	// 树木生成参数属性
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "treeMinDistance", PROPERTY_HINT_RANGE, "1,20"), "set_treeMinDistance", "get_treeMinDistance");
 

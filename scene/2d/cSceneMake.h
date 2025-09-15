@@ -68,6 +68,9 @@ public:
 	
 	// 树木生成参数
 	int treeMinDistance = 4;               // 树木最小间距（tile单位），控制树木之间的最小距离
+	
+	// 保存生成的树木信息供编辑器查看
+	TypedArray<Dictionary> generatedTreesInfo;
 
 	// 基础层方法
 	void set_mapsize(Vector2i inMapsize);
@@ -135,6 +138,10 @@ public:
 	// 树木生成参数方法
 	void set_treeMinDistance(int distance);
 	int get_treeMinDistance() const;
+	
+	// 生成的树木信息方法
+	void set_generatedTreesInfo(const TypedArray<Dictionary>& treesInfo);
+	TypedArray<Dictionary> get_generatedTreesInfo() const;
 
 public:
 

@@ -180,6 +180,15 @@ int cSceneMake::get_treeMinDistance() const {
 	return treeMinDistance;
 }
 
+// 生成的树木信息方法实现
+void cSceneMake::set_generatedTreesInfo(const TypedArray<Dictionary>& treesInfo) {
+	generatedTreesInfo = treesInfo;
+}
+
+TypedArray<Dictionary> cSceneMake::get_generatedTreesInfo() const {
+	return generatedTreesInfo;
+}
+
 // 检查指定位置周围指定距离内是否已经有树木
 bool cSceneMake::hasTreeWithinDistance(const Vector<spawnTreeData>& existingTrees, Vector2i pos, int distance) {
 	for(const auto& tree : existingTrees) {
@@ -322,6 +331,9 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 	}
 
 	Vector<spawnTreeData> treeDataArr;
+	
+	// 清空之前的树木信息
+	generatedTreesInfo.clear();
 
 	// 生成基础层（使用独立的形状控制）
 	print_line("Generating base layer...");
@@ -391,6 +403,17 @@ void cSceneMake::makeBaseTile(bool bClearTree) {
 				tree->set_name(theName);
 				tree->set_global_position(gPos);
 				tree->nat_setupPlaceItem(Dictionary());
+				
+				// 保存树木信息到数组中供编辑器查看
+				Dictionary treeInfo;
+				treeInfo["position"] = tempTreeData.pos;
+				treeInfo["global_position"] = gPos;
+				treeInfo["tree_path"] = thePath;
+				treeInfo["tree_name"] = theName;
+				treeInfo["tree_count"] = tempTreeData.treeInfo.count;
+				treeInfo["selected_index"] = randIndex;
+				treeInfo["tree_resource"] = treeRes;  // 保存树的资源对象
+				generatedTreesInfo.append(treeInfo);
 			}
 		}
 	}
@@ -459,35 +482,44 @@ void cSceneMake::_bind_methods() {
 	// 树木生成参数方法绑定
 	ClassDB::bind_method(D_METHOD("set_treeMinDistance", "distance"), &cSceneMake::set_treeMinDistance);
 	ClassDB::bind_method(D_METHOD("get_treeMinDistance"), &cSceneMake::get_treeMinDistance);
+	
+	// 生成的树木信息方法绑定
+	ClassDB::bind_method(D_METHOD("set_generatedTreesInfo", "treesInfo"), &cSceneMake::set_generatedTreesInfo);
+	ClassDB::bind_method(D_METHOD("get_generatedTreesInfo"), &cSceneMake::get_generatedTreesInfo);
 
+	// Other组 - 其他配置
+	ClassDB::add_property_group(get_class_static(), "Other", "");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "mapSize", PROPERTY_HINT_NONE, ""), "set_mapsize", "get_mapsize");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mapType", PROPERTY_HINT_NONE, "forest,desert"), "set_mapType", "get_maptype");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "randomSeed", PROPERTY_HINT_RANGE, "0,999999"), "set_randomSeed", "get_randomSeed");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "treeMinDistance", PROPERTY_HINT_RANGE, "1,20"), "set_treeMinDistance", "get_treeMinDistance");
+	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "generatedTreesInfo", PROPERTY_HINT_ARRAY_TYPE, "Dictionary"), "set_generatedTreesInfo", "get_generatedTreesInfo");
+
+	// 基础层组
+	ClassDB::add_property_group(get_class_static(), "BaseLayer", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "baseLayerTileset", PROPERTY_HINT_RESOURCE_TYPE, "TileSet"), "set_BaseLayerTileset", "get_baseLayerTileset");
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "baseLayerDatas", PROPERTY_HINT_ARRAY_TYPE, MAKE_RESOURCE_TYPE_HINT("cLayerData")), "set_baseLayerDatas", "get_layerDatas");
-
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "baseTilemapLayer"), "set_baseTilemapLayer", "get_baseTilemapLayer");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "baseLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_baseLayerNoiseFreq", "get_baseLayerNoiseFreq");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "baseLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_baseLayerContinuity", "get_baseLayerContinuity");
+
+	// 第二层组
+	ClassDB::add_property_group(get_class_static(), "SecondLayer", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "secondLayerTileset", PROPERTY_HINT_RESOURCE_TYPE, "TileSet"), "set_SecondLayerTileset", "get_secondLayerTileset");
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "secondLayerDatas", PROPERTY_HINT_ARRAY_TYPE, MAKE_RESOURCE_TYPE_HINT("cLayerData")), "set_secondLayerDatas", "get_secondLayerDatas");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "secondTilemapLayer"), "set_secondTilemapLayer", "get_secondTilemapLayer");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerThreshold", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerThreshold", "get_secondLayerThreshold");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_secondLayerNoiseFreq", "get_secondLayerNoiseFreq");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerContinuity", "get_secondLayerContinuity");
+
+	// 第三层组
+	ClassDB::add_property_group(get_class_static(), "ThirdLayer", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "thirdLayerTileset", PROPERTY_HINT_RESOURCE_TYPE, "TileSet"), "set_ThirdLayerTileset", "get_thirdLayerTileset");
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "thirdLayerDatas", PROPERTY_HINT_ARRAY_TYPE, MAKE_RESOURCE_TYPE_HINT("cLayerData")), "set_thirdLayerDatas", "get_thirdLayerDatas");
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "thirdTilemapLayer"), "set_thirdTilemapLayer", "get_thirdTilemapLayer");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerThreshold", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerThreshold", "get_secondLayerThreshold");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerThreshold", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_thirdLayerThreshold", "get_thirdLayerThreshold");
-
-	// 各层形状控制参数属性
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "baseLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_baseLayerNoiseFreq", "get_baseLayerNoiseFreq");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "baseLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_baseLayerContinuity", "get_baseLayerContinuity");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_secondLayerNoiseFreq", "get_secondLayerNoiseFreq");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "secondLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_secondLayerContinuity", "get_secondLayerContinuity");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerNoiseFreq", PROPERTY_HINT_RANGE, "0.1,5.0"), "set_thirdLayerNoiseFreq", "get_thirdLayerNoiseFreq");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "thirdLayerContinuity", PROPERTY_HINT_RANGE, "0.0,1.0"), "set_thirdLayerContinuity", "get_thirdLayerContinuity");
-
-	// 随机种子属性
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "randomSeed", PROPERTY_HINT_RANGE, "0,999999"), "set_randomSeed", "get_randomSeed");
-
-	// 树木生成参数属性
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "treeMinDistance", PROPERTY_HINT_RANGE, "1,20"), "set_treeMinDistance", "get_treeMinDistance");
 
 	BIND_ENUM_CONSTANT(FOREST);
 	BIND_ENUM_CONSTANT(DESERT);

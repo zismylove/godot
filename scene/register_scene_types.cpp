@@ -166,6 +166,12 @@
 #endif
 
 // 2D
+#include "scene/2d/cAstar.h"
+#include "scene/2d/cPlaceItemNode.h"
+#include "scene/2d/cSceneMake.h"
+#include "scene/2d/cShadowMap.h"
+#include "scene/2d/cTilemap.h"
+#include "scene/2d/layerData.h"
 #include "scene/2d/animated_sprite_2d.h"
 #include "scene/2d/audio_listener_2d.h"
 #include "scene/2d/audio_stream_player_2d.h"
@@ -947,6 +953,14 @@ void register_scene_types() {
 	GDREGISTER_CLASS(TileMapPattern);
 	GDREGISTER_CLASS(TileData);
 	GDREGISTER_CLASS(TileMapLayer);
+	GDREGISTER_CLASS(cAstar);
+	GDREGISTER_CLASS(cPlaceItemNode);
+	GDREGISTER_CLASS(cTilemap);
+	GDREGISTER_CLASS(cTileInfo);
+	GDREGISTER_CLASS(cTreeTileinfo);
+	GDREGISTER_CLASS(cLayerData);
+	GDREGISTER_CLASS(cSceneMake);
+	GDREGISTER_CLASS(cShadowMap);
 	GDREGISTER_CLASS(Parallax2D);
 	GDREGISTER_CLASS(RemoteTransform2D);
 

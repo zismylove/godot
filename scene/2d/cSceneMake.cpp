@@ -427,7 +427,7 @@ void cSceneMake::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_mapsize"), &cSceneMake::get_mapsize);
 
 	ClassDB::bind_method(D_METHOD("set_mapType", "mapsize"), &cSceneMake::set_mapType);
-	ClassDB::bind_method(D_METHOD("get_mapType"), &cSceneMake::get_maptype);
+	ClassDB::bind_method(D_METHOD("get_maptype"), &cSceneMake::get_maptype);
 
 	ClassDB::bind_method(D_METHOD("set_BaseLayerTileset", "tileset"), &cSceneMake::set_BaseLayerTileset);
 	ClassDB::bind_method(D_METHOD("get_baseLayerTileset"), &cSceneMake::get_baseLayerTileset);
@@ -488,7 +488,7 @@ void cSceneMake::_bind_methods() {
 	// Other组 - 其他配置
 	ClassDB::add_property_group(get_class_static(), "Other", "");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2I, "mapSize", PROPERTY_HINT_NONE, ""), "set_mapsize", "get_mapsize");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "mapType", PROPERTY_HINT_NONE, "forest,desert"), "set_mapType", "get_maptype");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "mapType", PROPERTY_HINT_ENUM, "forest,desert"), "set_mapType", "get_maptype");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "randomSeed", PROPERTY_HINT_RANGE, "0,999999"), "set_randomSeed", "get_randomSeed");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "treeMinDistance", PROPERTY_HINT_RANGE, "1,20"), "set_treeMinDistance", "get_treeMinDistance");
 	ADD_PROPERTY(PropertyInfo(Variant::ARRAY, "generatedTreesInfo", PROPERTY_HINT_ARRAY_TYPE, "Dictionary"), "set_generatedTreesInfo", "get_generatedTreesInfo");

@@ -40,6 +40,31 @@
 #include "core/string/translation_server.h"
 #include "core/variant/typed_array.h"
 
+static String _get_script_leak_description(const Script *p_script, const String &p_label) {
+	if (p_script == nullptr) {
+		return String();
+	}
+
+	String info = " - " + p_label + ": " + String(p_script->get_class());
+
+	const String script_path = p_script->get_path();
+	if (!script_path.is_empty()) {
+		info += " [" + script_path + "]";
+	}
+
+	const StringName global_name = p_script->get_global_name();
+	if (!global_name.is_empty()) {
+		info += " - Global name: " + String(global_name);
+	}
+
+	const StringName base_type = p_script->get_instance_base_type();
+	if (!base_type.is_empty()) {
+		info += " - Base type: " + String(base_type);
+	}
+
+	return info;
+}
+
 #ifdef DEBUG_ENABLED
 
 struct _ObjectDebugLock {
@@ -2638,39 +2663,42 @@ void ObjectDB::cleanup() {
 	spin_lock.lock();
 
 	if (slot_count > 0) {
-		WARN_PRINT("ObjectDB instances leaked at exit (run with --verbose for details).");
-		if (OS::get_singleton()->is_stdout_verbose()) {
-			// Ensure calling the native classes because if a leaked instance has a script
-			// that overrides any of those methods, it'd not be OK to call them at this point,
-			// now the scripting languages have already been terminated.
-			MethodBind *node_get_path = ClassDB::get_method("Node", "get_path");
-			MethodBind *resource_get_path = ClassDB::get_method("Resource", "get_path");
-			Callable::CallError call_error;
+		WARN_PRINT("ObjectDB instances leaked at exit. Detailed leaked instance list follows.");
+		// Ensure calling the native classes because if a leaked instance has a script
+		// that overrides any of those methods, it'd not be OK to call them at this point,
+		// now the scripting languages have already been terminated.
+		MethodBind *node_get_path = ClassDB::get_method("Node", "get_path");
+		MethodBind *resource_get_path = ClassDB::get_method("Resource", "get_path");
+		Callable::CallError call_error;
 
-			for (uint32_t i = 0, count = slot_count; i < slot_max && count != 0; i++) {
-				if (object_slots[i].validator) {
-					Object *obj = object_slots[i].object;
+		for (uint32_t i = 0, count = slot_count; i < slot_max && count != 0; i++) {
+			if (object_slots[i].validator) {
+				Object *obj = object_slots[i].object;
 
-					String extra_info;
-					if (obj->is_class("Node")) {
-						extra_info = " - Node path: " + String(node_get_path->call(obj, nullptr, 0, call_error));
-					}
-					if (obj->is_class("Resource")) {
-						extra_info = " - Resource path: " + String(resource_get_path->call(obj, nullptr, 0, call_error));
-					}
-					if (obj->is_class("RefCounted")) {
-						extra_info = " - Reference count: " + itos((static_cast<RefCounted *>(obj))->get_reference_count());
-					}
-
-					uint64_t id = uint64_t(i) | (uint64_t(object_slots[i].validator) << OBJECTDB_SLOT_MAX_COUNT_BITS) | (object_slots[i].is_ref_counted ? OBJECTDB_REFERENCE_BIT : 0);
-					DEV_ASSERT(id == (uint64_t)obj->get_instance_id()); // We could just use the id from the object, but this check may help catching memory corruption catastrophes.
-					print_line("Leaked instance: " + String(obj->get_class()) + ":" + uitos(id) + extra_info);
-
-					count--;
+				String extra_info;
+				if (obj->is_class("Node")) {
+					extra_info = " - Node path: " + String(node_get_path->call(obj, nullptr, 0, call_error));
 				}
+				if (obj->is_class("Resource")) {
+					extra_info = " - Resource path: " + String(resource_get_path->call(obj, nullptr, 0, call_error));
+				}
+				if (obj->is_class("RefCounted")) {
+					extra_info = " - Reference count: " + itos((static_cast<RefCounted *>(obj))->get_reference_count());
+				}
+				extra_info += _get_script_leak_description(Object::cast_to<Script>(obj), "Script resource");
+				const Ref<Script> attached_script = obj->get_script();
+				if (attached_script.is_valid()) {
+					extra_info += _get_script_leak_description(attached_script.ptr(), "Attached script");
+				}
+
+				uint64_t id = uint64_t(i) | (uint64_t(object_slots[i].validator) << OBJECTDB_SLOT_MAX_COUNT_BITS) | (object_slots[i].is_ref_counted ? OBJECTDB_REFERENCE_BIT : 0);
+				DEV_ASSERT(id == (uint64_t)obj->get_instance_id()); // We could just use the id from the object, but this check may help catching memory corruption catastrophes.
+				print_line("Leaked instance: " + String(obj->get_class()) + ":" + uitos(id) + extra_info);
+
+				count--;
 			}
-			print_line("Hint: Leaked instances typically happen when nodes are removed from the scene tree (with `remove_child()`) but not freed (with `free()` or `queue_free()`).");
 		}
+		print_line("Hint: Leaked instances typically happen when nodes are removed from the scene tree (with `remove_child()`) but not freed (with `free()` or `queue_free()`).");
 	}
 
 	if (object_slots) {

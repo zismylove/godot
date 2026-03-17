@@ -33,9 +33,35 @@
 #include "core/io/resource_loader.h"
 #include "core/math/math_funcs.h"
 #include "core/math/random_pcg.h"
+#include "core/object/script_language.h"
 #include "core/os/os.h"
 #include "core/variant/container_type_validate.h"
 #include "scene/main/node.h" //only so casting works
+
+static String _get_script_leak_description(const Script *p_script, const String &p_label) {
+	if (p_script == nullptr) {
+		return String();
+	}
+
+	String info = " - " + p_label + ": " + String(p_script->get_class());
+
+	const String script_path = p_script->get_path();
+	if (!script_path.is_empty()) {
+		info += " [" + script_path + "]";
+	}
+
+	const StringName global_name = p_script->get_global_name();
+	if (!global_name.is_empty()) {
+		info += " - Global name: " + String(global_name);
+	}
+
+	const StringName base_type = p_script->get_instance_base_type();
+	if (!base_type.is_empty()) {
+		info += " - Base type: " + String(base_type);
+	}
+
+	return info;
+}
 
 void Resource::emit_changed() {
 	if (emit_changed_state != EMIT_CHANGED_UNBLOCKED) {
@@ -801,13 +827,15 @@ RWLock ResourceCache::path_cache_lock;
 
 void ResourceCache::clear() {
 	if (!resources.is_empty()) {
-		if (OS::get_singleton()->is_stdout_verbose()) {
-			ERR_PRINT(vformat("%d resources still in use at exit.", resources.size()));
-			for (const KeyValue<String, Resource *> &E : resources) {
-				print_line(vformat("Resource still in use: %s (%s)", E.key, E.value->get_class()));
+		ERR_PRINT(vformat("%d resources still in use at exit. Detailed resource list follows.", resources.size()));
+		for (const KeyValue<String, Resource *> &E : resources) {
+			String extra_info = vformat(" - Instance id: %s - Reference count: %d", uitos(E.value->get_instance_id()), E.value->get_reference_count());
+			extra_info += _get_script_leak_description(Object::cast_to<Script>(E.value), "Script resource");
+			const Ref<Script> attached_script = E.value->get_script();
+			if (attached_script.is_valid()) {
+				extra_info += _get_script_leak_description(attached_script.ptr(), "Attached script");
 			}
-		} else {
-			ERR_PRINT(vformat("%d resources still in use at exit (run with --verbose for details).", resources.size()));
+			print_line(vformat("Resource still in use: %s (%s)%s", E.key, E.value->get_class(), extra_info));
 		}
 	}
 
